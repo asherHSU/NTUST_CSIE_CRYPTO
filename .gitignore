@@ -1,0 +1,36 @@
+# --- C Language Build Artifacts (C 語言編譯產出物) ---
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
+*.app
+
+# --- Project Directories (忽略我們規劃的產出資料夾) ---
+# 我們約定好把執行檔放在 bin/，把中間檔放在 build/
+# 所以這兩個資料夾裡面的東西都不應該上傳
+bin/
+build/
+Debug/
+Release/
+x64/
+x86/
+
+# --- Temporary Tools (工具產出的暫存檔) ---
+# 雖然 tools/ 下的原始碼要上傳，但編譯出來的工具執行檔不用
+tools/*.exe
+
+# --- OS Generated Files (作業系統產生的垃圾檔) ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- IDE/Editor Settings (編輯器設定檔) ---
+# 每個人的編輯器設定不同，不應該同步
+.vscode/
+.idea/
+*.swp
+*.swo
