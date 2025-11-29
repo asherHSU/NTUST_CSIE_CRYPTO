@@ -8,7 +8,7 @@ CC = gcc
 # -O3: 開啟最高效能優化 (Rudraksh 需要測速，這很重要)
 # -Wall -Wextra: 開啟所有警告 (幫你抓 Bug)
 # -I src: 告訴編譯器去 src 資料夾找 .h 檔
-CFLAGS = -O3 -Wall -Wextra -I src
+CFLAGS = -O3 -Wall -Wextra -I src -I src/ascon
 
 # 專案路徑設定
 SRC_DIR = src
@@ -20,10 +20,13 @@ TEST_DIR = tests
 CORE_SRCS = $(SRC_DIR)/rudraksh_ntt.c \
             $(SRC_DIR)/rudraksh_ntt_data.c
 
+CORE_SRCS_ASCON = 	$(SRC_DIR)/rudraksh_ascon.c 
+
 # 將 .c 檔案列表轉換為 .o (Object file) 列表
 # 例如: src/ntt.c -> build/ntt.o
 CORE_OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS))
 
+CORE_OBJS_ASCON = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS_ASCON))
 # ==========================================
 # Targets (指令目標)
 # ==========================================
@@ -31,10 +34,17 @@ CORE_OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS))
 # 預設目標：當你只打 'make' 時，會執行這個
 all: dirs test_ntt
 
+ascon: wdirs test_ascon
+
 # 建立必要的資料夾 (避免編譯時報錯說資料夾不存在)
 dirs:
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BIN_DIR)
+
+# 	windows 不能加上-p會被當成資料夾
+wdirs:
+	@mkdir  $(BUILD_DIR)
+	@mkdir  $(BIN_DIR)
 
 # ------------------------------------------
 # 核心物件檔編譯規則
@@ -55,6 +65,12 @@ test_ntt: $(CORE_OBJS) $(TEST_DIR)/test_ntt.c
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_ntt.c $(CORE_OBJS) -o $(BIN_DIR)/test_ntt
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ntt"
 
+# 編譯 ASCON
+test_ascon: $(CORE_OBJS_ASCON) $(TEST_DIR)/test_ascon.c
+	@echo "Building ASCON Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_ascon.c $(CORE_OBJS_ASCON) -o $(BIN_DIR)/test_ascon
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ascon"
+
 # ------------------------------------------
 # 清理規則
 # ------------------------------------------
@@ -63,3 +79,7 @@ clean:
 	rm -rf $(BUILD_DIR)/* $(BIN_DIR)/*
 
 .PHONY: all dirs clean test_ntt
+
+wclean:
+	@echo "(Windows) Cleaning up..."
+	rmdir /s /q $(BUILD_DIR) $(BIN_DIR)
