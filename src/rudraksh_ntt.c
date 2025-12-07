@@ -41,7 +41,7 @@ int16_t fqsub(int16_t a, int16_t b) {
  * 例如: index 1 (000001) -> index 32 (100000)
  */
 void bitrev_vector(int16_t* poly_coeffs) {
-    int i, j, k;
+    int i, j;
     int16_t temp;
     
     j = 0;
@@ -70,10 +70,8 @@ void poly_ntt(poly *p) {
     // 1. 先進行位元反轉重排 (Bit-reversal permutation)
     bitrev_vector(p->coeffs);
 
-    int len, start, j, k;
-    int16_t zeta, t;
-
-    k = 1; // 用於追蹤要使用 zetas 表中的哪一個旋轉因子
+    int len, start, j;
+    int16_t zeta;
     
     // 2. 蝴蝶運算 (Butterfly Operations)
     // 層數 loop: len = 2, 4, 8, 16, 32, 64
@@ -140,10 +138,9 @@ void poly_invntt_tomont(poly *p) {
     // [修正 1] Bit-reversal 必須在開始時做，跟 Forward NTT 一樣
     bitrev_vector(p->coeffs);
 
-    int len, start, j, k;
+    int len, start, j;
     int16_t zeta, inv_zeta;
     
-    k = 1; 
     // [修正 2] 使用跟 Forward NTT 完全一樣的迴圈結構 (Bottom-up)
     for (len = 2; len <= KYBER_N; len <<= 1) {
         int half_len = len >> 1;

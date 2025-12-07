@@ -18,7 +18,9 @@ TEST_DIR = tests
 
 # 核心原始碼列表 (如果有新檔案，例如 ascon.c，加在這裡)
 CORE_SRCS = $(SRC_DIR)/rudraksh_ntt.c \
-            $(SRC_DIR)/rudraksh_ntt_data.c
+            $(SRC_DIR)/rudraksh_ntt_data.c \
+			$(SRC_DIR)/rudraksh_ascon.c \
+            $(SRC_DIR)/rudraksh_poly.c
 
 CORE_SRCS_ASCON = 	$(SRC_DIR)/rudraksh_ascon.c 
 
