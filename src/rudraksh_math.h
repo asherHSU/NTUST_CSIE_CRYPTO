@@ -15,23 +15,23 @@
 
 // 多項式結構
 typedef struct {
-    int16_t coeffs[KYBER_N];
+    int16_t coeffs[RUDRAKSH_N];
 } poly;
 
 // 多項式向量 (矩陣運算用)
 typedef struct {
-    poly vec[KYBER_K];
+    poly vec[RUDRAKSH_K];
 } polyvec;
 
-// 多項式矩陣 (KYBER_K x KYBER_K)
+// 多項式矩陣 (RUDRAKSH_K x RUDRAKSH_K)
 typedef struct {
-    polyvec row[KYBER_K];
+    polyvec row[RUDRAKSH_K];
 } polymat;
 
 // ==========================================================
 // 3. 全域變數宣告
 // ==========================================================
-extern const int16_t zetas[KYBER_N];
+extern const int16_t zetas[RUDRAKSH_N];
 
 // ==========================================================
 // 4. 數學核心函式 (Member A)

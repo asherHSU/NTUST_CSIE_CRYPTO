@@ -3,7 +3,7 @@
 #include "rudraksh_params.h"
 
 // 這是我們在 step 2 生成的數據，透過 extern 引用
-extern const int16_t zetas[KYBER_N];
+extern const int16_t zetas[RUDRAKSH_N];
 
 /**
  * 基礎模乘法 (Modular Multiplication)
@@ -12,7 +12,7 @@ extern const int16_t zetas[KYBER_N];
  */
 int16_t fqmul(int16_t a, int16_t b) {
     int32_t res = (int32_t)a * b;
-    return (int16_t)(res % KYBER_Q);
+    return (int16_t)(res % RUDRAKSH_Q);
 }
 
 /**
@@ -21,7 +21,7 @@ int16_t fqmul(int16_t a, int16_t b) {
  */
 int16_t fqadd(int16_t a, int16_t b) {
     int16_t res = a + b;
-    if (res >= KYBER_Q) res -= KYBER_Q;
+    if (res >= RUDRAKSH_Q) res -= RUDRAKSH_Q;
     return res;
 }
 
@@ -31,7 +31,7 @@ int16_t fqadd(int16_t a, int16_t b) {
  */
 int16_t fqsub(int16_t a, int16_t b) {
     int16_t res = a - b;
-    if (res < 0) res += KYBER_Q;
+    if (res < 0) res += RUDRAKSH_Q;
     return res;
 }
 
@@ -45,8 +45,8 @@ void bitrev_vector(int16_t* poly_coeffs) {
     int16_t temp;
     
     j = 0;
-    for (i = 1; i < KYBER_N; i++) {
-        int bit = KYBER_N >> 1;
+    for (i = 1; i < RUDRAKSH_N; i++) {
+        int bit = RUDRAKSH_N >> 1;
         while (j & bit) {
             j ^= bit;
             bit >>= 1;
@@ -75,15 +75,15 @@ void poly_ntt(poly *p) {
     
     // 2. 蝴蝶運算 (Butterfly Operations)
     // 層數 loop: len = 2, 4, 8, 16, 32, 64
-    for (len = 2; len <= KYBER_N; len <<= 1) {
+    for (len = 2; len <= RUDRAKSH_N; len <<= 1) {
         
         int half_len = len >> 1;
         // 旋轉因子 zeta 步進: 因為我們有 N 個 zeta，但每一層只用到部分
         // 在標準 CT 演算法中，每一層使用的 zeta 間隔不同
-        int step = KYBER_N / len; 
+        int step = RUDRAKSH_N / len; 
 
         // 區塊 loop
-        for (start = 0; start < KYBER_N; start += len) {
+        for (start = 0; start < RUDRAKSH_N; start += len) {
             
             // 每一層的第一個 butterfly 使用 zeta^0 = 1
             // 但為了對應我們產生的 natural order table，我們需要特殊的索引邏輯
@@ -118,12 +118,12 @@ void poly_ntt(poly *p) {
  */
 int16_t fqinv(int16_t a) {
     int32_t base = a;
-    int32_t exp = KYBER_Q - 2;
+    int32_t exp = RUDRAKSH_Q - 2;
     int32_t res = 1;
     
     while (exp > 0) {
-        if (exp & 1) res = (res * base) % KYBER_Q;
-        base = (base * base) % KYBER_Q;
+        if (exp & 1) res = (res * base) % RUDRAKSH_Q;
+        base = (base * base) % RUDRAKSH_Q;
         exp >>= 1;
     }
     return (int16_t)res;
@@ -142,11 +142,11 @@ void poly_invntt_tomont(poly *p) {
     int16_t zeta, inv_zeta;
     
     // [修正 2] 使用跟 Forward NTT 完全一樣的迴圈結構 (Bottom-up)
-    for (len = 2; len <= KYBER_N; len <<= 1) {
+    for (len = 2; len <= RUDRAKSH_N; len <<= 1) {
         int half_len = len >> 1;
-        int step = KYBER_N / len;
+        int step = RUDRAKSH_N / len;
         
-        for (start = 0; start < KYBER_N; start += len) {
+        for (start = 0; start < RUDRAKSH_N; start += len) {
             for (j = 0; j < half_len; j++) {
                 // 取得正向的 zeta
                 zeta = zetas[j * step];
@@ -169,9 +169,9 @@ void poly_invntt_tomont(poly *p) {
 
     // [修正 5] 最後縮放：除以 N (乘以 N^-1 mod Q)
     // 64^-1 mod 7681 = 7561 (也就是 -120)
-    int16_t n_inv = fqinv(KYBER_N); 
+    int16_t n_inv = fqinv(RUDRAKSH_N); 
     
-    for(int i=0; i<KYBER_N; i++) {
+    for(int i=0; i<RUDRAKSH_N; i++) {
         p->coeffs[i] = fqmul(p->coeffs[i], n_inv);
     }
     
