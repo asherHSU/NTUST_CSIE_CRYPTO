@@ -1,13 +1,19 @@
-#ifndef RUDRAKSH_NTT_H
-#define RUDRAKSH_NTT_H
+#ifndef RUDRAKSH_MATH_H
+#define RUDRAKSH_MATH_H
 
 #include <stdint.h>
 #include "rudraksh_params.h"
 
+// ==========================================================
 // 1. NTT 專用常數
+// ==========================================================
 #define RUDRAKSH_ZETA 202
 
+// ==========================================================
 // 2. 資料結構
+// ==========================================================
+
+// 多項式結構
 typedef struct {
     int16_t coeffs[KYBER_N];
 } poly;
@@ -17,7 +23,14 @@ typedef struct {
     poly vec[KYBER_K];
 } polyvec;
 
+// 多項式矩陣 (KYBER_K x KYBER_K)
+typedef struct {
+    polyvec row[KYBER_K];
+} polymat;
+
+// ==========================================================
 // 3. 全域變數宣告
+// ==========================================================
 extern const int16_t zetas[KYBER_N];
 
 // ==========================================================
@@ -53,8 +66,12 @@ void poly_decompress_v(poly *r, const uint8_t *a);
 // ==========================================================
 // 6. 取樣函式 (Member B)
 // ==========================================================
-void poly_uniform(poly *p, const uint8_t *seed, uint16_t nonce);
-void poly_cbd_eta2(poly *p, const uint8_t *buf);
+
+// 沒有看到取樣多項式 (均勻分布)
+// void poly_uniform(poly *p, const uint8_t *seed, uint16_t nonce);
+void poly_cbd_eta2(poly *p, const uint8_t *buf); // 生成 e'' with eta=2
+void poly_cbd_eta1(poly *p, const uint8_t *buf); // 生成 s or e with eta=1
+void poly_matrix_uniform(polymat *a, const uint8_t *seed); // 生成矩陣 A (ascon xof)
 
 // 13-bit Serialization (For PK/SK)
 void poly_tobytes_13bit(uint8_t *r, const poly *a);
@@ -67,6 +84,8 @@ void polyvec_compress_u(uint8_t *r, const polyvec *a);
 void polyvec_decompress_u(polyvec *r, const uint8_t *a);
 void polyvec_ntt(polyvec *r);
 void polyvec_invntt_tomont(polyvec *r);
+// 可能要加入多項式矩陣乘法和加法的函式宣告
 
 
-#endif // RUDRAKSH_NTT_H
+
+#endif // RUDRAKSH_MATH_H

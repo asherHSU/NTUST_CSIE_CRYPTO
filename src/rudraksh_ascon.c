@@ -1,4 +1,4 @@
-#include "rudraksh_ascon.h"
+#include "rudraksh_random.h"
 
 // 位於ascon/xof/opt64 //
 #include "ascon/api.h"
@@ -102,6 +102,7 @@ void rudraksh_hash_H(uint8_t *output, const uint8_t *input, size_t inlen)
 }
 
 // hash G() : Any bytes -> 64 bytes
+// !! 需要修改這個函式來支援 G() !!
 void rudraksh_hash_G(uint8_t *output, const uint8_t *input, size_t inlen)
 {
     ascon_state_t state;

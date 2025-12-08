@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "rudraksh_ntt.h"
+#include "rudraksh_math.h"
 #include "rudraksh_params.h"
 
 // 這是我們在 step 2 生成的數據，透過 extern 引用

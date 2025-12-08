@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "rudraksh_ntt.h"
+#include "rudraksh_math.h"
 #include "rudraksh_params.h"
 
 // ==========================================================

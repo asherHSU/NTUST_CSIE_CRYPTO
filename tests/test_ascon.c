@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "../src/rudraksh_ascon.h"
+#include "../src/rudraksh_random.h"
 
 // 輔助函式：列印 Hex 字串
 void print_hex(const char *label, const uint8_t *data, size_t len) {

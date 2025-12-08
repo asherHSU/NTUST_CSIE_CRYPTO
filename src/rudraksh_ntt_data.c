@@ -3,7 +3,7 @@
  * Order: Natural Order (powers of zeta: 0, 1, 2, ..., N-1)
  */
 
-#include "rudraksh_ntt.h"
+#include "rudraksh_math.h"
 
 // 這是全域常數，供 NTT 運算時查表使用
 const int16_t zetas[KYBER_N] = {

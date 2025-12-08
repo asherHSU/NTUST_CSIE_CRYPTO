@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "../src/rudraksh_params.h"
-#include "../src/rudraksh_ntt.h"
+#include "../src/rudraksh_math.h"
 
 void print_poly(const char* msg, poly *p) {
     printf("%s: [", msg);
