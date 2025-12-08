@@ -33,4 +33,7 @@
 #define CRYPTO_SECRETKEYBYTES  1920
 #define CRYPTO_CIPHERTEXTBYTES 760
 
+// len_K 定義為 16 bytes (128 bits) 的共享金鑰長度
+#define len_K 16
+
 #endif // RUDRAKSH_PARAMS_H

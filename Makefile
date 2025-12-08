@@ -23,12 +23,15 @@ CORE_SRCS = $(SRC_DIR)/rudraksh_ntt.c \
             $(SRC_DIR)/rudraksh_poly.c
 
 CORE_SRCS_ASCON = 	$(SRC_DIR)/rudraksh_ascon.c 
+CORE_SRCS_RND = 	$(SRC_DIR)/rudraksh_randombytes.c
 
 # 將 .c 檔案列表轉換為 .o (Object file) 列表
 # 例如: src/ntt.c -> build/ntt.o
 CORE_OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS))
 
+# 單獨測試 :  ASCON 和 Random 所需的物件檔
 CORE_OBJS_ASCON = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS_ASCON))
+CORE_OBJS_RND = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS_RND))
 # ==========================================
 # Targets (指令目標)
 # ==========================================
@@ -37,6 +40,7 @@ CORE_OBJS_ASCON = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS_ASCON
 all: dirs test_ntt
 
 ascon: wdirs test_ascon
+random: wdirs test_randombytes
 
 # 建立必要的資料夾 (避免編譯時報錯說資料夾不存在)
 dirs:
@@ -72,6 +76,12 @@ test_ascon: $(CORE_OBJS_ASCON) $(TEST_DIR)/test_ascon.c
 	@echo "Building ASCON Unit Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_ascon.c $(CORE_OBJS_ASCON) -o $(BIN_DIR)/test_ascon
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ascon"
+
+# 編譯 random 測試
+test_randombytes: $(CORE_OBJS_RND) $(TEST_DIR)/test_randombytes.c
+	@echo "Building Random Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_randombytes.c $(CORE_OBJS_RND) -o $(BIN_DIR)/test_randombytes
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_randombytes"
 
 # ------------------------------------------
 # 清理規則
