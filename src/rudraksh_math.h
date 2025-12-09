@@ -69,8 +69,8 @@ void poly_decompress_v(poly *r, const uint8_t *a);
 
 // 沒有看到取樣多項式 (均勻分布)
 // void poly_uniform(poly *p, const uint8_t *seed, uint16_t nonce);
-void poly_cbd_eta2(poly *p, const uint8_t *buf); // 生成 e'' with eta=2
-void poly_cbd_eta1(poly *p, const uint8_t *buf); // 生成 s or e with eta=1
+void polyvec_cbd_eta(polyvec *s,polyvec *e, const uint8_t *key); // 生成 s or e with eta=1
+void poly_cbd_eta(poly *e, const uint8_t *key, const uint8_t nonce); // 生成 e'' with eta=2
 void poly_matrixA_generator(polymat *a, const uint8_t *seed); // 生成矩陣 A (ascon xof)
 
 // 13-bit Serialization (For PK/SK)
@@ -85,7 +85,5 @@ void polyvec_decompress_u(polyvec *r, const uint8_t *a);
 void polyvec_ntt(polyvec *r);
 void polyvec_invntt_tomont(polyvec *r);
 // 可能要加入多項式矩陣乘法和加法的函式宣告
-
-
 
 #endif // RUDRAKSH_MATH_H

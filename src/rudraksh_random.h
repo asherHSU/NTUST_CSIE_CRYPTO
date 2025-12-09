@@ -6,14 +6,16 @@
 #include "ascon/ascon.h"
 #define RUDRAFKSH_STATE ascon_state_t
 
-#define RUDRAKSH_PRF_IN_BYTES 18   // 16 bytes seed + 2 byte nonce
+#define RUDRAKSH_PRF_matrixA_IN_BYTES 18   // 16 bytes seed + 2 byte nonce
+#define RUDRAKSH_PRF_cbd_IN_BYTE 17     // 16 bytes seed + 1 byte nonce
 
 // ==========================================================
 // 1. Ascon 狀態結構
 // ==========================================================
 
 // 不確定輸出長度，所以需要state參數
-void rudraksh_prf_init(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce_i, const uint8_t *nonce_j);
+void rudraksh_prf_init_matrixA(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce_i, const uint8_t *nonce_j);
+void rudraksh_prf_init_cbd(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce);
 void rudraksh_prf_put(RUDRAFKSH_STATE *s, uint8_t *out );
 
 

@@ -47,4 +47,67 @@ int main()
 
     printf("Avg coffe : %lld( Avg = 3840 )",sum/coffe_n);
 
+
+    // ==========================================================
+    // 2. cbd eta generator
+    // ==========================================================
+    
+    // 函數設計
+    uint8_t key_eta[RUDRAKSH_len_K];
+    rudraksh_randombytes(key_eta,RUDRAKSH_len_K);
+    polyvec test_vec_s,test_vec_e;
+    poly test_poly_e;
+    polyvec_cbd_eta(&test_vec_s, &test_vec_e,key_eta);
+    poly_cbd_eta(&test_poly_e, key_eta, (uint8_t)18);
+    printf("函數編譯成功\n");
+
+    //分布測試
+    int result[5] = {0,0,0,0,0}; // 2,1,0,-1,-2
+    rudraksh_randombytes(key_eta,RUDRAKSH_len_K);
+    for(int i=0;i<20;i++)
+    {
+        poly p;
+        poly_cbd_eta(&p,key_eta,(uint8_t)i);
+        for(int j=0;j<64;j++)
+        {
+            result[p.coeffs[j]+2]++; // -2~2 -> 0~4
+        }
+    }
+    printf("分佈測試:\n");
+    for(int i=0;i<5;i++)
+    {
+        printf("%d : %d\n",i-2,result[i]);
+    }
+
+    // 黃金輸入 (...擷取至rudraksh_generator.c)
+    uint8_t byte[3] = {0x00,0x55,0x24};
+    int ans[3][2] = {
+        {0,0},
+        {0,0},
+        {-1,1}
+    };
+    int16_t a, b , h, l;
+
+    for (int i = 0; i < 3; i++)
+    {
+        // --- 處理低 4 位 (生成第 2*i 個係數) ---
+        // bits 0,1 是第一組 (a)，bits 2,3 是第二組 (b)
+        // 技巧：(x >> 1) & 1 取出 bit 1，(x & 1) 取出 bit 0
+        a = (byte[i] & 0x1) + ((byte[i] >> 1) & 0x1);        // HW(第一組)
+        b = ((byte[i] >> 2) & 0x1) + ((byte[i] >> 3) & 0x1); // HW(第二組)
+        l = a - b;
+
+        // --- 處理高 4 位 (生成第 2*i+1 個係數) ---
+        // bits 4,5 是第一組，bits 6,7 是第二組
+        a = ((byte[i] >> 4) & 0x1) + ((byte[i] >> 5) & 0x1);
+        b = ((byte[i] >> 6) & 0x1) + ((byte[i] >> 7) & 0x1);
+        h = a - b;
+
+        printf("-------------------\n");
+        printf("test: %d , Ans: %d\n",l,ans[i][0]);
+        printf("test: %d , Ans: %d\n",h,ans[i][1]);
+    }
+
+    printf("\n=== All Tests Finished ===\n");
+    return 0;
 }

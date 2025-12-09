@@ -85,9 +85,9 @@ void rudraksh_hash(uint8_t *output, const uint8_t *input, size_t inlen)
 }
 
 // 需要先初始化 state
-void rudraksh_prf_init(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce_i, const uint8_t *nonce_j)
+void rudraksh_prf_init_matrixA(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce_i, const uint8_t *nonce_j)
 {
-    uint8_t input_buf[RUDRAKSH_PRF_IN_BYTES]; // 18 bytes
+    uint8_t input_buf[RUDRAKSH_PRF_matrixA_IN_BYTES]; // 18 bytes
 
     // 串接 Seed 與 Nonce
     // [ Seed (0..15) | Nonce (16, 17) ]
@@ -96,7 +96,20 @@ void rudraksh_prf_init(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *no
     input_buf[17] = (uint8_t)(*nonce_j & 0xFF);
 
     rudraksh_ascon_init(s,ASCON_XOF_IV);
-    rudraksh_ascon_absorb(s,input_buf,RUDRAKSH_PRF_IN_BYTES);
+    rudraksh_ascon_absorb(s,input_buf,RUDRAKSH_PRF_matrixA_IN_BYTES);
+}
+
+void rudraksh_prf_init_cbd(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce)
+{
+    uint8_t input_buf[RUDRAKSH_PRF_cbd_IN_BYTE]; // 17 bytes
+
+    // 串接 Seed 與 Nonce 9
+    // [ Seed (0..15) | Nonce (16, 17) ]
+    memcpy(input_buf, key, 16);
+    input_buf[16] = (uint8_t)(*nonce & 0xFF);
+
+    rudraksh_ascon_init(s,ASCON_XOF_IV);
+    rudraksh_ascon_absorb(s,input_buf,RUDRAKSH_PRF_cbd_IN_BYTE);
 }
 
 // call 一次 產生 8 bytes
