@@ -1,4 +1,5 @@
-#include "rudraksh_ascon.h"
+#include "rudraksh_random.h"
+#include "rudraksh_params.h"
 
 // 位於ascon/xof/opt64 //
 #include "ascon/api.h"
@@ -54,74 +55,53 @@ void rudraksh_ascon_absorb(ascon_state_t* s, const unsigned char* in, unsigned l
 }
 
 // ==========================================
-// 3. 擠出亂數 (Squeeze)
+// 3. Hash 擠出函式
 // ==========================================
-// 這就是您一直在尋找的函式
-void rudraksh_ascon_squeeze(ascon_state_t* s, unsigned char* out, unsigned long long len) {
+void rudraksh_ascon_hash_squeeze(ascon_state_t* s, unsigned char* out) {
     
     // ASCON 的 Rate 是 64 bits (8 bytes)
     // 邏輯：提取 -> 置換 -> 提取 -> 置換...
     
-    while (len > 0) {
-        // 1. 決定這次要拿多少 (最多 8 bytes)
-        int current_rate = 8; // ASCON_HASH_RATE
-        size_t amount = ((size_t)len < (size_t)current_rate) ? len : (size_t)current_rate;
-        
-        // 2. 從狀態的第一個字 (x[0]) 提取數據
+    for(int8_t i = 0; i < (RUDRAKSH_len_K / 8); i++) {
+        // 1. 從狀態的第一個字 (x[0]) 提取數據
         // 注意：這裡使用 word.h 提供的 STOREBYTES 來處理 Endian
-        STOREBYTES(out, s->x[0], amount);
+        STOREBYTES(out, s->x[0], 8);
         
-        // 3. 關鍵：執行 P12 置換
-        // 這是為了讓下一次提取 (無論是這次迴圈還是下一次呼叫 squeeze) 拿到新的亂數
-        // 原版 hash.c 最後一步沒有 P12，因為它結束了。
-        // 但我們是 XOF，必須隨時準備產生更多數據。
+        // 2. 關鍵：執行 P12 置換
         P12(s);
         
-        // 4. 更新指標
-        out += amount;
-        len -= amount;
+        // 3. 更新指標
+        out += 8;
     }
 }
 
-// xof 生成 martix A : 32 bytes -> Any bytes
-void rudraksh_xof(uint8_t *output, size_t outlen,const uint8_t *input)
-{
-    ascon_state_t state;
-    rudraksh_ascon_init(&state,ASCON_XOF_IV);
-    rudraksh_ascon_absorb(&state,input,RUDRAKSH_XOF_IN_BYTES);
-    rudraksh_ascon_squeeze(&state,output,outlen);
-}
 
-// hash H() : Any bytes -> 32 bytes
-void rudraksh_hash_H(uint8_t *output, const uint8_t *input, size_t inlen)
+void rudraksh_hash(uint8_t *output, const uint8_t *input, size_t inlen)
 {
     ascon_state_t state;
     rudraksh_ascon_init(&state,ASCON_HASH_IV);
     rudraksh_ascon_absorb(&state,input,inlen);
-    rudraksh_ascon_squeeze(&state,output,RUDRAKSH_HASH_H_OUT_BYTES);
+    rudraksh_ascon_hash_squeeze(&state,output);
 }
 
-// hash G() : Any bytes -> 64 bytes
-void rudraksh_hash_G(uint8_t *output, const uint8_t *input, size_t inlen)
+// 需要先初始化 state
+void rudraksh_prf_init(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce_i, const uint8_t *nonce_j)
 {
-    ascon_state_t state;
-    rudraksh_ascon_init(&state,ASCON_HASH_IV);
-    rudraksh_ascon_absorb(&state,input,inlen);
-    rudraksh_ascon_squeeze(&state,output,RUDRAKSH_HASH_G_OUT_BYTES);
-}
+    uint8_t input_buf[RUDRAKSH_PRF_IN_BYTES]; // 18 bytes
 
-// PRF(xof) : 17 bytes (key[16] + nonce[1]) -> Any bytes (32 / 64)
-void rudraksh_prf(uint8_t *output, size_t outlen, const uint8_t *key, const uint8_t *nonce)
-{
-    uint8_t input_buf[RUDRAKSH_PRF_IN_BYTES]; // 17 bytes
-
-    // 2. 串接 Seed 與 Nonce
-    // [ Seed (0..15) | Nonce (16) ]
+    // 串接 Seed 與 Nonce
+    // [ Seed (0..15) | Nonce (16, 17) ]
     memcpy(input_buf, key, 16);
-    input_buf[16] = (uint8_t)(*nonce & 0xFF);
+    input_buf[16] = (uint8_t)(*nonce_i & 0xFF);
+    input_buf[17] = (uint8_t)(*nonce_j & 0xFF);
 
-    ascon_state_t state;
-    rudraksh_ascon_init(&state,ASCON_XOF_IV);
-    rudraksh_ascon_absorb(&state,input_buf,RUDRAKSH_PRF_IN_BYTES);
-    rudraksh_ascon_squeeze(&state,output,outlen);
+    rudraksh_ascon_init(s,ASCON_XOF_IV);
+    rudraksh_ascon_absorb(s,input_buf,RUDRAKSH_PRF_IN_BYTES);
+}
+
+// call 一次 產生 8 bytes
+void rudraksh_prf_put(RUDRAFKSH_STATE *s,uint8_t *out )
+{
+    STOREBYTES(out, s->x[0], 8);
+    P12(s);
 }

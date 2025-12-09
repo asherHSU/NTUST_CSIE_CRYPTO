@@ -16,7 +16,7 @@ int main() {
     printf(" */\n\n");
     
     printf("#include \"rudraksh_ntt.h\"\n\n");
-    printf("const int16_t zetas[KYBER_N] = {\n");
+    printf("const int16_t zetas[RUDRAKSH_N] = {\n");
 
     for(int i = 0; i < N; i++) {
         // 每行印 8 個數字，保持排版整潔

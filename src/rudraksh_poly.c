@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "rudraksh_ntt.h"
+#include "rudraksh_math.h"
 #include "rudraksh_params.h"
 
 // ==========================================================
@@ -41,8 +41,8 @@ void poly_tomsg(uint8_t msg[16], const poly *a) {
         msg[i] = 0;
         for(j=0; j<4; j++) {
             // t = (a * 4 + q/2) / q
-            t  = ((uint32_t)a->coeffs[4*i+j] << 2) + (KYBER_Q/2);
-            t /= KYBER_Q;
+            t  = ((uint32_t)a->coeffs[4*i+j] << 2) + (RUDRAKSH_Q/2);
+            t /= RUDRAKSH_Q;
             // 取 2 bits 並組合回 byte
             msg[i] |= ((t & 0x3) << (2*j));
         }
@@ -63,12 +63,12 @@ void poly_compress_u(uint8_t *r, const poly *a) {
     uint16_t t[4];
     int ctr = 0;
 
-    for(i=0; i<KYBER_N/4; i++) {
+    for(i=0; i<RUDRAKSH_N/4; i++) {
         for(int j=0; j<4; j++) {
             // round(1024 * x / 7681)
             uint32_t val = (uint32_t)a->coeffs[4*i+j];
-            val = (val << 10) + (KYBER_Q/2);
-            val = val / KYBER_Q;
+            val = (val << 10) + (RUDRAKSH_Q/2);
+            val = val / RUDRAKSH_Q;
             t[j] = val & 0x3FF;
         }
 
@@ -85,7 +85,7 @@ void poly_compress_u(uint8_t *r, const poly *a) {
 void poly_decompress_u(poly *r, const uint8_t *a) {
     int i;
     int ctr = 0;
-    for(i=0; i<KYBER_N/4; i++) {
+    for(i=0; i<RUDRAKSH_N/4; i++) {
         uint16_t t[4];
         // Unpack 5 bytes -> 4x10 bits
         t[0] = (a[ctr+0] >> 0) | ((uint16_t)a[ctr+1] << 8);
@@ -97,7 +97,7 @@ void poly_decompress_u(poly *r, const uint8_t *a) {
             t[j] &= 0x3FF;
             // round(7681 * x / 1024)
             uint32_t val = (uint32_t)t[j];
-            val = (val * KYBER_Q) + 512;
+            val = (val * RUDRAKSH_Q) + 512;
             val >>= 10;
             r->coeffs[4*i+j] = (int16_t)val;
         }
@@ -119,12 +119,12 @@ void poly_compress_v(uint8_t *r, const poly *a) {
     uint8_t t[8];
     int ctr = 0;
 
-    for(i=0; i<KYBER_N/8; i++) {
+    for(i=0; i<RUDRAKSH_N/8; i++) {
         for(int j=0; j<8; j++) {
             // round(8 * x / 7681)
             uint32_t val = (uint32_t)a->coeffs[8*i+j];
-            val = (val << 3) + (KYBER_Q/2);
-            val = val / KYBER_Q;
+            val = (val << 3) + (RUDRAKSH_Q/2);
+            val = val / RUDRAKSH_Q;
             t[j] = val & 0x7; // 取 3 bits
         }
 
@@ -143,7 +143,7 @@ void poly_compress_v(uint8_t *r, const poly *a) {
 void poly_decompress_v(poly *r, const uint8_t *a) {
     int i;
     int ctr = 0;
-    for(i=0; i<KYBER_N/8; i++) {
+    for(i=0; i<RUDRAKSH_N/8; i++) {
         uint8_t t[8];
         
         // Unpack 3 bytes -> 8x3 bits
@@ -159,7 +159,7 @@ void poly_decompress_v(poly *r, const uint8_t *a) {
         for(int j=0; j<8; j++) {
             // round(7681 * x / 8)
             uint32_t val = (uint32_t)t[j];
-            val = (val * KYBER_Q) + 4; // + t/2 (4)
+            val = (val * RUDRAKSH_Q) + 4; // + t/2 (4)
             val >>= 3; // divide by 8
             r->coeffs[8*i+j] = (int16_t)val;
         }
@@ -180,7 +180,7 @@ void poly_decompress_v(poly *r, const uint8_t *a) {
 void poly_tobytes_13bit(uint8_t *r, const poly *a) {
     int i;
     int ctr = 0;
-    for(i=0; i<KYBER_N/8; i++) {
+    for(i=0; i<RUDRAKSH_N/8; i++) {
         // 取出 8 個係數
         uint16_t t[8];
         for(int k=0; k<8; k++) t[k] = a->coeffs[8*i+k] & 0x1FFF; // Mask 13 bits
@@ -210,7 +210,7 @@ void poly_tobytes_13bit(uint8_t *r, const poly *a) {
 void poly_frombytes_13bit(poly *r, const uint8_t *a) {
     int i;
     int ctr = 0;
-    for(i=0; i<KYBER_N/8; i++) {
+    for(i=0; i<RUDRAKSH_N/8; i++) {
         uint16_t t[8];
         
         t[0] = (a[ctr+0] >> 0) | ((uint16_t)a[ctr+1] << 8);
@@ -234,41 +234,41 @@ void poly_frombytes_13bit(poly *r, const uint8_t *a) {
 
 // 向量打包 (13-bit)
 void polyvec_tobytes_13bit(uint8_t *r, const polyvec *a) {
-    for(int i=0; i<KYBER_K; i++) {
+    for(int i=0; i<RUDRAKSH_K; i++) {
         // 每個 poly 佔 104 bytes (64 * 13 / 8)
         poly_tobytes_13bit(r + i*104, &a->vec[i]);
     }
 }
 
 void polyvec_frombytes_13bit(polyvec *r, const uint8_t *a) {
-    for(int i=0; i<KYBER_K; i++) {
+    for(int i=0; i<RUDRAKSH_K; i++) {
         poly_frombytes_13bit(&r->vec[i], a + i*104);
     }
 }
 
 // 向量壓縮 U (10-bit)
 void polyvec_compress_u(uint8_t *r, const polyvec *a) {
-    for(int i=0; i<KYBER_K; i++) {
+    for(int i=0; i<RUDRAKSH_K; i++) {
         // 每個 poly 壓縮後佔 80 bytes (64 * 10 / 8)
         poly_compress_u(r + i*80, &a->vec[i]);
     }
 }
 
 void polyvec_decompress_u(polyvec *r, const uint8_t *a) {
-    for(int i=0; i<KYBER_K; i++) {
+    for(int i=0; i<RUDRAKSH_K; i++) {
         poly_decompress_u(&r->vec[i], a + i*80);
     }
 }
 
 // 向量 NTT 轉換
 void polyvec_ntt(polyvec *r) {
-    for(int i=0; i<KYBER_K; i++) {
+    for(int i=0; i<RUDRAKSH_K; i++) {
         poly_ntt(&r->vec[i]);
     }
 }
 
 void polyvec_invntt_tomont(polyvec *r) {
-    for(int i=0; i<KYBER_K; i++) {
+    for(int i=0; i<RUDRAKSH_K; i++) {
         poly_invntt_tomont(&r->vec[i]);
     }
 }
