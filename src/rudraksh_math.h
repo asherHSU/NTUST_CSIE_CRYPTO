@@ -25,7 +25,7 @@ typedef struct {
 
 // 多項式矩陣 (RUDRAKSH_K x RUDRAKSH_K)
 typedef struct {
-    polyvec row[RUDRAKSH_K];
+    poly matrix[RUDRAKSH_K][RUDRAKSH_K];
 } polymat;
 
 // ==========================================================
@@ -71,7 +71,7 @@ void poly_decompress_v(poly *r, const uint8_t *a);
 // void poly_uniform(poly *p, const uint8_t *seed, uint16_t nonce);
 void poly_cbd_eta2(poly *p, const uint8_t *buf); // 生成 e'' with eta=2
 void poly_cbd_eta1(poly *p, const uint8_t *buf); // 生成 s or e with eta=1
-void poly_matrix_uniform(polymat *a, const uint8_t *seed); // 生成矩陣 A (ascon xof)
+void poly_matrixA_generator(polymat *a, const uint8_t *seed); // 生成矩陣 A (ascon xof)
 
 // 13-bit Serialization (For PK/SK)
 void poly_tobytes_13bit(uint8_t *r, const poly *a);

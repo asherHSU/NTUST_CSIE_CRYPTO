@@ -13,8 +13,8 @@
 // ==========================================================
 
 // 不確定輸出長度，所以需要state參數
-void rudraksh_prf_init(RUDRAFKSH_STATE *s, uint8_t *key, uint8_t *nonce_i, uint8_t *nonce_j);
-void rudraksh_prf_put(RUDRAFKSH_STATE *s,uint8_t *out );
+void rudraksh_prf_init(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce_i, const uint8_t *nonce_j);
+void rudraksh_prf_put(RUDRAFKSH_STATE *s, uint8_t *out );
 
 
 void rudraksh_hash(uint8_t *output, const uint8_t *input, size_t inlen);

@@ -25,12 +25,17 @@ CORE_SRCS = $(SRC_DIR)/rudraksh_ntt.c \
 CORE_SRCS_RND = 	$(SRC_DIR)/rudraksh_randombytes.c\
 					$(SRC_DIR)/rudraksh_ascon.c 
 
+CORE_SRCS_Gen = $(SRC_DIR)/rudraksh_randombytes.c\
+					$(SRC_DIR)/rudraksh_ascon.c \
+					$(SRC_DIR)/rudraksh_generator.c
+
 # 將 .c 檔案列表轉換為 .o (Object file) 列表
 # 例如: src/ntt.c -> build/ntt.o
 CORE_OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS))
 
-# 單獨測試 :  Random 所需的物件檔
+# 單獨測試 :  Random 、 matrix A
 CORE_OBJS_RND = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS_RND))
+CORE_OBJS_Gen = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS_Gen))
 # ==========================================
 # Targets (指令目標)
 # ==========================================
@@ -39,6 +44,7 @@ CORE_OBJS_RND = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS_RND))
 all: dirs test_ntt
 
 random: wdirs test_random
+gen: wdirs test_generator
 
 # 建立必要的資料夾 (避免編譯時報錯說資料夾不存在)
 dirs:
@@ -76,6 +82,11 @@ test_random: $(CORE_OBJS_RND) $(TEST_DIR)/test_random.c
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_random.exe"
 	./$(BIN_DIR)/test_random.exe
 
+test_generator: $(CORE_OBJS_Gen) $(TEST_DIR)/test_generator.c
+	@echo "Building Generator Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_generator.c $(CORE_OBJS_Gen) -o $(BIN_DIR)/test_generator.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_generator.exe"
+	./$(BIN_DIR)/test_generator.exe
 # ------------------------------------------
 # 清理規則
 # ------------------------------------------

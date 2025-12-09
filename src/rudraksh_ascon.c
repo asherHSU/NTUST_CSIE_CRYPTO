@@ -85,7 +85,7 @@ void rudraksh_hash(uint8_t *output, const uint8_t *input, size_t inlen)
 }
 
 // 需要先初始化 state
-void rudraksh_prf_init(RUDRAFKSH_STATE *s, uint8_t *key, uint8_t *nonce_i, uint8_t *nonce_j)
+void rudraksh_prf_init(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t *nonce_i, const uint8_t *nonce_j)
 {
     uint8_t input_buf[RUDRAKSH_PRF_IN_BYTES]; // 18 bytes
 
