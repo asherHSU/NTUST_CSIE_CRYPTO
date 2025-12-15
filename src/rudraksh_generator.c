@@ -11,7 +11,7 @@ inline void poly_generator(poly *p, const uint8_t *seed, const uint8_t i, const 
 {
     // init state & prf
     RUDRAFKSH_STATE state;
-    rudraksh_prf_init(&state, seed, &i,&j);
+    rudraksh_prf_init_matrixA(&state, seed, &i,&j);
     
     int count = 0; // poly 參數計數器
     uint64_t buffer = 0;   // 目前正在處理的位元區
@@ -76,3 +76,60 @@ void poly_matrixA_generator(polymat *a, const uint8_t *seed)
     }
 }
 
+// ==========================================================
+// 2. cbd_etc
+// ==========================================================
+
+// nonce -> Rudraksh_K = 9
+
+// 生成 s or e with eta=1 , noce 
+// s noce = [0 ~ l-1]
+// e noce = [l ~ 2l-1]
+void polyvec_cbd_eta(polyvec *s,polyvec *e, const uint8_t *key)
+{
+    for(size_t i=0;i<RUDRAKSH_K;i++) // K =9, nonce: s = [0~8] ; e = [9~17] 
+    {
+        poly ps,pe;
+
+        poly_cbd_eta(&ps,key,i);
+        poly_cbd_eta(&pe,key,(uint8_t)(i+RUDRAKSH_K));
+
+        s->vec[i] = ps;
+        e->vec[i] = pe;
+    }
+}
+
+// 生成 e'' ，nonce = (uint8_t)RUDRAKSH*2 = 18
+// 與 s,e 的生成共用，
+void poly_cbd_eta(poly *e, const uint8_t *key, const uint8_t nonce)
+{
+    // 生成 poly coeff
+    uint8_t buffer[32]; // 儲存 PRF bit stream
+
+    // 初始化 ascon_prf
+    RUDRAFKSH_STATE state;
+    rudraksh_prf_init_cbd(&state, key, &nonce);
+    for(size_t i=0;i<4;i++)    // 32byte = 8bytes (一次)*4
+    {
+        rudraksh_prf_put(&state,buffer+(i*8)); // <- test 確認
+    }
+
+    // 總共64個poly , 1 poly -> 4bit = 0.5 bytes, 64*0.5 = 32bytes = 8bytes (一次)*4
+    for (int i = 0; i < 32; i++) {
+        uint8_t byte = buffer[i];
+        int16_t a, b;
+
+        // --- 處理低 4 位 (生成第 2*i 個係數) ---
+        // bits 0,1 是第一組 (a)，bits 2,3 是第二組 (b)
+        // 技巧：(x >> 1) & 1 取出 bit 1，(x & 1) 取出 bit 0
+        a = (byte & 0x1) + ((byte >> 1) & 0x1); // HW(第一組)
+        b = ((byte >> 2) & 0x1) + ((byte >> 3) & 0x1); // HW(第二組)
+        e->coeffs[2 * i] = a - b;
+
+        // --- 處理高 4 位 (生成第 2*i+1 個係數) ---
+        // bits 4,5 是第一組，bits 6,7 是第二組
+        a = ((byte >> 4) & 0x1) + ((byte >> 5) & 0x1);
+        b = ((byte >> 6) & 0x1) + ((byte >> 7) & 0x1);
+        e->coeffs[2 * i + 1] = a - b;
+    }
+}

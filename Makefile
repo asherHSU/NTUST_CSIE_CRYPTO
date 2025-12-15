@@ -27,7 +27,7 @@ CORE_SRCS_RND = 	$(SRC_DIR)/rudraksh_randombytes.c\
 
 CORE_SRCS_Gen = $(SRC_DIR)/rudraksh_randombytes.c\
 					$(SRC_DIR)/rudraksh_ascon.c \
-					$(SRC_DIR)/rudraksh_generator.c
+					$(SRC_DIR)/rudraksh_generator.c\
 
 # 將 .c 檔案列表轉換為 .o (Object file) 列表
 # 例如: src/ntt.c -> build/ntt.o
