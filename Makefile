@@ -45,6 +45,7 @@ all: dirs test_ntt
 
 random: wdirs test_random
 gen: wdirs test_generator
+ntt: wdirs test_ntt_win
 
 # 建立必要的資料夾 (避免編譯時報錯說資料夾不存在)
 dirs:
@@ -87,6 +88,12 @@ test_generator: $(CORE_OBJS_Gen) $(TEST_DIR)/test_generator.c
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_generator.c $(CORE_OBJS_Gen) -o $(BIN_DIR)/test_generator.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_generator.exe"
 	./$(BIN_DIR)/test_generator.exe
+
+test_ntt_win: $(CORE_OBJS) $(TEST_DIR)/test_ntt.c
+	@echo "Building NTT Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_ntt.c $(CORE_OBJS) -o $(BIN_DIR)/test_ntt.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ntt.exe"
+	./$(BIN_DIR)/test_ntt.exe
 # ------------------------------------------
 # 清理規則
 # ------------------------------------------
