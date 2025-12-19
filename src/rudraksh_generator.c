@@ -99,7 +99,7 @@ void polyvec_cbd_eta(polyvec *s,polyvec *e, const uint8_t *key)
     }
 }
 
-// 生成 e'' ，nonce = (uint8_t)RUDRAKSH*2 = 18
+// 生成 e'' ，nonce = (uint8_t)RUDRAKSH_K*2 = 18
 // 與 s,e 的生成共用，
 void poly_cbd_eta(poly *e, const uint8_t *key, const uint8_t nonce)
 {

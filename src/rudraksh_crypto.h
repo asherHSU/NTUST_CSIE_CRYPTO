@@ -9,43 +9,36 @@
 // ==========================================================
 // Data Type
 // ==========================================================
-typedef struct 
-{
-    uint8_t seed_A[RUDRAKSH_len_K];
-    polyvec b;
-}public_key;
+// ==========================================
+// 1. External / Serialized (API 用，緊湊的 Bytes)
+// ==========================================
+typedef struct {
+    uint8_t bytes[CRYPTO_PUBLICKEYBYTES];
+} public_key_bitstream;
 
-typedef struct 
-{
-    polyvec s;
-}secret_key;
+typedef struct {
+    uint8_t bytes[CRYPTO_SECRETKEYBYTES];
+} secret_key_bitstream;
 
-typedef struct 
-{
-    poly u;
-    polyvec v;
-}cipher_text;
+typedef struct {
+    uint8_t bytes[CRYPTO_CIPHERTEXTBYTES];
+} cipher_text;
 
+typedef struct {
+    uint8_t bytes[RUDRAKSH_len_K];
+} shared_secret;
 
-//for KEM (down)
-typedef struct 
-{
-    uint8_t seed_A[RUDRAKSH_len_K];
-    uint8_t polyvec_b[952];
-}public_key_bitstream;
-typedef struct 
-{
-    polyvec s;
-    uint8_t z[RUDRAKSH_len_K];
-    uint8_t pkh[RUDRAKSH_len_K];
-    public_key_bitstream pk_bits;
-}secret_key_bitstream; 
+// ==========================================
+// 2. Internal / Unpacked (運算用，int16_t)
+// ==========================================
+typedef struct {
+    polyvec b;                         // 係數為 int16_t
+    uint8_t seed_A[RUDRAKSH_len_K];    // 儲存生成矩陣用的種子
+} public_key;
 
-typedef struct 
-{
-    uint8_t K[RUDRAKSH_len_K];
-}shared_secret;
-
+typedef struct {
+    polyvec s;                         // 係數為 int16_t
+} secret_key;
 
 // ==========================================================
 // 1. Public Key Encryption (PKE) 

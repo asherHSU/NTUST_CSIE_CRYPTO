@@ -49,9 +49,15 @@ int16_t fqinv(int16_t a);
     // add new
 void poly_zero(poly *p); 
 
-// NTT 運算
+// NTT(poly) 運算
+    // 加法
+void poly_add(poly *r, const poly *a, const poly *b);          // r = a + b
+void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b); // Vector r = Vector a + Vector b
+void poly_sub(poly *r, const poly *a, const poly *b);
+    //乘法
 void poly_basemul_acc(poly *r, const poly *a, const poly *b);
-void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s); // matrix - vector 乘法
+void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s); // matrix (轉置) - vector 乘法
+void poly_matrix_vec_mul(polyvec *b, const polymat *A, const polyvec *s);        // matrix - vector 乘法
 void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s); // vector - vector 乘法
 
 

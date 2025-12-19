@@ -215,6 +215,19 @@ void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s) {
     }
 }
 
+// 計算 b = A * s (標準矩陣向量乘法)
+void poly_matrix_vec_mul(polyvec *b, const polymat *A, const polyvec *s) {
+    for (int i = 0; i < RUDRAKSH_K; i++) {
+        poly_zero(&b->vec[i]); // 初始化為 0
+        for (int j = 0; j < RUDRAKSH_K; j++) {
+            // 注意：這裡是 A[i][j]，代表第 i 列第 j 行
+            poly_basemul_acc(&b->vec[i], &A->matrix[i][j], &s->vec[j]);
+        }
+        // 根據實作，這裡可能需要做 montgomery reduction 或保留在 montgomery domain
+        // 假設 poly_basemul_acc 已經處理好累加
+    }
+}
+
 void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s) {
     // 1. 初始化結果多項式 c 為 0
     poly_zero(c);
@@ -224,5 +237,29 @@ void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s) {
     for (int i = 0; i < RUDRAKSH_K; i++) {
         // 將 b[i] 與 s[i] 相乘並累加到 c
         poly_basemul_acc(c, &b->vec[i], &s->vec[i]);
+    }
+}
+
+// =========================================================
+// 3. poly(vec) 加法/減法
+// =========================================================
+
+// 單一多項式加法: r = a + b
+void poly_add(poly *r, const poly *a, const poly *b) {
+    for (int i = 0; i < RUDRAKSH_N; i++) {
+        r->coeffs[i] = fqadd(a->coeffs[i], b->coeffs[i]);
+    }
+}
+
+// 多項式向量加法: r = a + b
+void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b) {
+    for (int i = 0; i < RUDRAKSH_K; i++) {
+        poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
+    }
+}
+
+void poly_sub(poly *r, const poly *a, const poly *b) {
+    for (int i = 0; i < RUDRAKSH_N; i++) {
+        r->coeffs[i] = fqsub(a->coeffs[i], b->coeffs[i]);
     }
 }
