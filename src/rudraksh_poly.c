@@ -9,43 +9,79 @@
 // ==========================================================
 
 /**
- * Encode: 將 16-byte 的訊息 m 轉換為多項式
- * 公式: Encode(m) = floor(q / 2^B) * m
- * 對於 B=2, q=7681: Scaling factor = floor(7681 / 4) = 1920
+ * Arrange_msg: 將 16-byte 的 msg 格式化為多項式 m
+ * 僅做位元拆解，不進行數學放大。
+ * 輸入: msg (16 bytes)
+ * 輸出: m (64 個係數，每個係數值域 0~3)
  */
-void poly_frommsg(poly *r, const uint8_t msg[16]) {
+void arrange_msg(poly *m, const uint8_t msg[16]) {
     int i, j;
     
-    // 每個 byte 有 8 bits，可以切成 4 個 2-bit 的塊
-    // 總共 16 bytes * 4 = 64 個係數
     for(i=0; i<16; i++) {
+        uint8_t byte = msg[i];
         for(j=0; j<4; j++) {
-            // 取出 2 bits
-            int16_t mask = (msg[i] >> (2*j)) & 0x3;
-            // 乘上 scaling factor 1920
-            r->coeffs[4*i+j] = 1920 * mask;
+            // 取出 2 bits，不做任何乘法
+            // j=0 -> bits 0-1
+            // j=1 -> bits 2-3 ...
+            m->coeffs[4*i+j] = (byte >> (2*j)) & 0x3;
         }
     }
 }
 
 /**
- * Decode: 將多項式轉換回 16-byte 訊息
- * 公式: Decode(m) = round(2^B * m / q)
- * 這裡 B=2，即 round(4 * x / 7681)
+ * Original_msg: 將多項式 m' 還原回 16-byte 訊息
+ * 假設輸入的係數已經經過 Decode，數值都在 0~3 之間。
+ * 輸入: m (64 個係數，值域 0~3)
+ * 輸出: msg (16 bytes)
  */
-void poly_tomsg(uint8_t msg[16], const poly *a) {
+void original_msg(uint8_t msg[16], const poly *m) {
     int i, j;
-    uint32_t t;
 
     for(i=0; i<16; i++) {
-        msg[i] = 0;
+        msg[i] = 0; // 初始化為 0
         for(j=0; j<4; j++) {
-            // t = (a * 4 + q/2) / q
-            t  = ((uint32_t)a->coeffs[4*i+j] << 2) + (RUDRAKSH_Q/2);
-            t /= RUDRAKSH_Q;
-            // 取 2 bits 並組合回 byte
-            msg[i] |= ((t & 0x3) << (2*j));
+            // 取出係數的低 2 位 (防止前面步驟有髒數據)
+            uint8_t val = m->coeffs[4*i+j] & 0x3;
+            // 移位並組裝
+            msg[i] |= (val << (2*j));
         }
+    }
+}
+
+/**
+ * Encode: 將小係數多項式放大，以容納雜訊
+ * 公式: m * floor(q / 2^B) = m * 1920
+ * 輸入: m (係數 0~3)
+ * 輸出: r (係數 0, 1920, 3840, 5760)
+ */
+void poly_encode(poly *r, const poly *m) {
+    // 預計算常數: 7681 / 4 = 1920
+    const int16_t factor = 1920; 
+
+    for(int i=0; i<RUDRAKSH_N; i++) {
+        // 純粹的純量乘法
+        r->coeffs[i] = m->coeffs[i] * factor;
+    }
+}
+
+/**
+ * Decode: 從帶雜訊的多項式中還原原始係數
+ * 公式: round(2^B * x / q) -> round(4 * x / 7681)
+ * 輸入: noisy_poly (係數值域 0~7680，帶有雜訊)
+ * 輸出: m (係數還原回 0~3)
+ */
+void poly_decode(poly *m, const poly *noisy_poly) {
+    for(int i=0; i<RUDRAKSH_N; i++) {
+        // 1. 取得數值 (假設已標準化為正數)
+        uint32_t t = (uint32_t)noisy_poly->coeffs[i];
+        
+        // 2. 執行四捨五入公式: (t * 4 + q/2) / q
+        // RUDRAKSH_Q = 7681, q/2 = 3840
+        t = (t << 2) + 3840;
+        t /= RUDRAKSH_Q;
+        
+        // 3. 取模 4 (確保結果是 0~3)
+        m->coeffs[i] = t & 0x3;
     }
 }
 

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include "rudraksh_math.h"
 #include "rudraksh_params.h"
 
@@ -33,6 +34,11 @@ int16_t fqsub(int16_t a, int16_t b) {
     int16_t res = a - b;
     if (res < 0) res += RUDRAKSH_Q;
     return res;
+}
+
+// 多項式歸零
+void poly_zero(poly *p) {
+    memset(p->coeffs, 0, sizeof(p->coeffs));
 }
 
 /**
@@ -177,4 +183,46 @@ void poly_invntt_tomont(poly *p) {
     
     // [修正 6] 移除最後的 bitrev，因為我們一開始就做過了，
     // Cooley-Tukey 的輸出本身就是 Natural Order。
+}
+
+// =========================================================
+// 2.NTT 域點乘
+// =========================================================
+
+// 多項式點對點乘法 (Point-wise Multiplication)
+// r = a * b (在 NTT 域中)
+void poly_basemul_acc(poly *r, const poly *a, const poly *b) {
+    for (int i = 0; i < RUDRAKSH_N; i++) {
+        // r[i] = r[i] + (a[i] * b[i])
+        int16_t product = fqmul(a->coeffs[i], b->coeffs[i]);
+        r->coeffs[i] = fqadd(r->coeffs[i], product);
+    }
+}
+
+void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s) {
+    // 1. 初始化結果向量 b 為 0
+    for (int i = 0; i < RUDRAKSH_K; i++) {
+        poly_zero(&b->vec[i]);
+    }
+
+    // 2. 矩陣運算 (注意 A 的索引是 [j][i] 而非 [i][j]，因為是 A^T)
+    // b[i] = sum( A[j][i] * s[j] ) for j in 0..K-1
+    for (int i = 0; i < RUDRAKSH_K; i++) {
+        for (int j = 0; j < RUDRAKSH_K; j++) {
+            // 將 A[j][i] 與 s[j] 相乘並累加到 b[i]
+            poly_basemul_acc(&b->vec[i], &A->matrix[j][i], &s->vec[j]);
+        }
+    }
+}
+
+void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s) {
+    // 1. 初始化結果多項式 c 為 0
+    poly_zero(c);
+
+    // 2. 內積運算
+    // c = sum( b[i] * s[i] )
+    for (int i = 0; i < RUDRAKSH_K; i++) {
+        // 將 b[i] 與 s[i] 相乘並累加到 c
+        poly_basemul_acc(c, &b->vec[i], &s->vec[i]);
+    }
 }

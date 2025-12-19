@@ -46,14 +46,28 @@ int16_t fqmul(int16_t a, int16_t b);
 int16_t fqadd(int16_t a, int16_t b);
 int16_t fqsub(int16_t a, int16_t b);
 int16_t fqinv(int16_t a);
+    // add new
+void poly_zero(poly *p); 
+
+// NTT 運算
+void poly_basemul_acc(poly *r, const poly *a, const poly *b);
+void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s); // matrix - vector 乘法
+void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s); // vector - vector 乘法
+
 
 // ==========================================================
 // 5. 資料轉換與壓縮 (Member A)
 // ==========================================================
 
 // 訊息 <-> 多項式 (B=2)
-void poly_frommsg(poly *r, const uint8_t msg[16]);
-void poly_tomsg(uint8_t msg[16], const poly *a);
+void arrange_msg(poly *m, const uint8_t msg[16]);
+void original_msg(uint8_t msg[16], const poly *m);
+
+// R_2^B (R4) -> Rq
+void poly_encode(poly *r, const poly *m);
+void poly_decode(poly *m, const poly *noisy_poly);
+
+
 
 // 向量 U 壓縮 (10 bits)
 void poly_compress_u(uint8_t *r, const poly *a);
@@ -67,7 +81,6 @@ void poly_decompress_v(poly *r, const uint8_t *a);
 // 6. 取樣函式 (Member B)
 // ==========================================================
 
-// 沒有看到取樣多項式 (均勻分布)
 // void poly_uniform(poly *p, const uint8_t *seed, uint16_t nonce);
 void polyvec_cbd_eta(polyvec *s,polyvec *e, const uint8_t *key); // 生成 s or e with eta=1
 void poly_cbd_eta(poly *e, const uint8_t *key, const uint8_t nonce); // 生成 e'' with eta=2
