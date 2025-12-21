@@ -72,6 +72,7 @@ void poly_matrixA_generator(polymat *a, const uint8_t *seed)
             poly p;
             poly_generator(&p,seed,i,j);
             a->matrix[i][j] = p;
+            //poly_ntt(&(a->matrix[i][j]));
         }
     }
 }
@@ -124,12 +125,23 @@ void poly_cbd_eta(poly *e, const uint8_t *key, const uint8_t nonce)
         // 技巧：(x >> 1) & 1 取出 bit 1，(x & 1) 取出 bit 0
         a = (byte & 0x1) + ((byte >> 1) & 0x1); // HW(第一組)
         b = ((byte >> 2) & 0x1) + ((byte >> 3) & 0x1); // HW(第二組)
-        e->coeffs[2 * i] = a - b;
+        int16_t d1 = (int16_t)a - (int16_t)b; // a, b 為漢明重量，d 範圍是 [-2, 2]
+        
 
         // --- 處理高 4 位 (生成第 2*i+1 個係數) ---
         // bits 4,5 是第一組，bits 6,7 是第二組
         a = ((byte >> 4) & 0x1) + ((byte >> 5) & 0x1);
         b = ((byte >> 6) & 0x1) + ((byte >> 7) & 0x1);
+        int16_t d2 = (int16_t)a - (int16_t)b; // a, b 為漢明重量，d 範圍是 [-2, 2]
         e->coeffs[2 * i + 1] = a - b;
+
+        // 修改後的 CBD 取樣邏輯片段
+        
+        // 核心修正：符號轉換
+        if (d1 < 0) d1 += RUDRAKSH_Q; 
+        if (d2 < 0) d2 += RUDRAKSH_Q; 
+
+        e->coeffs[2 * i] = d1;
+        e->coeffs[2 * i+1] = d2; // 現在 d 變成了 7680, 7679 等正數
     }
 }

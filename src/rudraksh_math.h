@@ -32,6 +32,7 @@ typedef struct {
 // 3. 全域變數宣告
 // ==========================================================
 extern const int16_t zetas[RUDRAKSH_N];
+extern const int16_t zetas_inv[RUDRAKSH_N];
 
 // ==========================================================
 // 4. 數學核心函式 (Member A)
@@ -39,7 +40,7 @@ extern const int16_t zetas[RUDRAKSH_N];
 
 // NTT 轉換
 void poly_ntt(poly *p);
-void poly_invntt_tomont(poly *p);
+void poly_invntt(poly *p);
 
 // 基礎運算
 int16_t fqmul(int16_t a, int16_t b);
@@ -48,6 +49,7 @@ int16_t fqsub(int16_t a, int16_t b);
 int16_t fqinv(int16_t a);
     // add new
 void poly_zero(poly *p); 
+void polyvec_zero(polyvec *pv); 
 
 // NTT(poly) 運算
     // 加法
