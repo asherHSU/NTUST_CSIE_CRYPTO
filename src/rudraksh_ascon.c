@@ -57,12 +57,12 @@ void rudraksh_ascon_absorb(ascon_state_t* s, const unsigned char* in, unsigned l
 // ==========================================
 // 3. Hash 擠出函式
 // ==========================================
-void rudraksh_ascon_hash_squeeze(ascon_state_t* s, unsigned char* out) {
+void rudraksh_ascon_hash_squeeze(ascon_state_t* s, unsigned char* out, size_t outlen) {
     
     // ASCON 的 Rate 是 64 bits (8 bytes)
     // 邏輯：提取 -> 置換 -> 提取 -> 置換...
     
-    for(int8_t i = 0; i < (RUDRAKSH_len_K / 8); i++) {
+    for(int8_t i = 0; i < ((int)outlen / 8); i++) {
         // 1. 從狀態的第一個字 (x[0]) 提取數據
         // 注意：這裡使用 word.h 提供的 STOREBYTES 來處理 Endian
         STOREBYTES(out, s->x[0], 8);
@@ -76,12 +76,12 @@ void rudraksh_ascon_hash_squeeze(ascon_state_t* s, unsigned char* out) {
 }
 
 
-void rudraksh_hash(uint8_t *output, const uint8_t *input, size_t inlen)
+void rudraksh_hash(uint8_t *output, const uint8_t *input, size_t inlen, size_t outlen)
 {
     ascon_state_t state;
     rudraksh_ascon_init(&state,ASCON_HASH_IV);
     rudraksh_ascon_absorb(&state,input,inlen);
-    rudraksh_ascon_hash_squeeze(&state,output);
+    rudraksh_ascon_hash_squeeze(&state,output,outlen);
 }
 
 // 需要先初始化 state

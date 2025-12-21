@@ -19,7 +19,7 @@ void rudraksh_prf_init_cbd(RUDRAFKSH_STATE *s, const uint8_t *key, const uint8_t
 void rudraksh_prf_put(RUDRAFKSH_STATE *s, uint8_t *out );
 
 
-void rudraksh_hash(uint8_t *output, const uint8_t *input, size_t inlen);
+void rudraksh_hash(uint8_t *output, const uint8_t *input, size_t inlen,size_t outlen);
 
 
 // ==========================================================
