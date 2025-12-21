@@ -58,6 +58,7 @@ void rudraksh_pke_keygen(public_key *pk, secret_key *sk)
     polymat A;
     polyvec s, e;
 
+
     // 2. 亂數生成
     rudraksh_randombytes(seedbuf, 2 * RUDRAKSH_len_K);
 
@@ -69,8 +70,8 @@ void rudraksh_pke_keygen(public_key *pk, secret_key *sk)
     polyvec_cbd_eta(&s, &e, seed_se);
 
     // 3. 矩陣運算 (NTT Domain)
-    polyvec_ntt(&s);
-    polyvec_ntt(&e);
+    // polyvec_ntt(&s);
+    // polyvec_ntt(&e);
 
     // 計算 b = A * s + e 
     // 先計算 A * s 存入 pk->b
@@ -98,18 +99,18 @@ void rudraksh_pke_encrypt(public_key *pk, poly *m, uint8_t *r, cipher_text *c)
     poly_cbd_eta(&e_prime_prime, r, 2 * RUDRAKSH_K); // Nonce offset
 
     // 3. NTT 運算
-    polyvec_ntt(&s_prime);
+    // polyvec_ntt(&s_prime);
 
     // 4. 計算 u (即 b_prime) = A^T * s' + e'
     poly_matrix_trans_vec_mul(&b_prime, &A, &s_prime);
-    polyvec_invntt_tomont(&b_prime);
+    // polyvec_invntt_tomont(&b_prime);
     
     // 加誤差 e'
     polyvec_add(&b_prime, &b_prime, &e_prime);
 
     // 5. 計算 v (即 c_m_hat) = b^T * s' + e'' + Encode(m)
     poly_vector_vector_mul(&c_m_hat, &pk->b, &s_prime);
-    poly_invntt(&c_m_hat);
+    // poly_invntt(&c_m_hat);
 
     poly m_encoded;
     poly_encode(&m_encoded, m);
@@ -141,9 +142,9 @@ void rudraksh_pke_decrypt(cipher_text *c, secret_key *sk, poly *m)
     poly_decompress_v(&v_prime, c->bytes + CRYPTO_CIPHERTEXTBYTES_VEC_U); //!
 
     // 2. 運算
-    polyvec_ntt(&u_prime);
+    // polyvec_ntt(&u_prime);
     poly_vector_vector_mul(&v_temp, &u_prime, &sk->s); // u^T *
-    poly_invntt(&v_temp);
+    // poly_invntt(&v_temp);
 
     // m'' = v - s^T * u
     poly_sub(&v_temp,&v_prime,&v_temp);
@@ -162,8 +163,12 @@ void rudraksh_pke_decrypt(cipher_text *c, secret_key *sk, poly *m)
 void rudraksh_kem_keygen(public_key_bitstream *pkb, secret_key_bitstream *skb)
 {
     // [Internal] 宣告內部運算結構
-    public_key pk;
-    secret_key sk;
+    public_key pk = {0};
+    secret_key sk = {0};
+
+    // 清除記憶體雜訊
+    memset(pkb->bytes, 0, CRYPTO_PUBLICKEYBYTES);
+    memset(skb->bytes, 0, CRYPTO_SECRETKEYBYTES);
 
     // 1. 執行核心 KeyGen
     rudraksh_pke_keygen(&pk, &sk);
@@ -175,11 +180,11 @@ void rudraksh_kem_keygen(public_key_bitstream *pkb, secret_key_bitstream *skb)
     memcpy(pkb->bytes + (CRYPTO_PUBLICKEYBYTES - RUDRAKSH_len_K), pk.seed_A, RUDRAKSH_len_K);
 
     // 3. 準備 Secret Key 的額外資料
-    uint8_t pkh[RUDRAKSH_len_K];
-    uint8_t z[RUDRAKSH_len_K];
+    uint8_t pkh[RUDRAKSH_len_K] = {0};
+    uint8_t z[RUDRAKSH_len_K] = {0};
     
     // 計算 H(pk)
-    rudraksh_hash(pkh, pkb->bytes, CRYPTO_PUBLICKEYBYTES);
+    rudraksh_hash(pkh, pkb->bytes, CRYPTO_PUBLICKEYBYTES,RUDRAKSH_len_K);
     // 生成隨機數 z
     rudraksh_randombytes(z, RUDRAKSH_len_K);
 
@@ -201,18 +206,19 @@ void rudraksh_kem_keygen(public_key_bitstream *pkb, secret_key_bitstream *skb)
 
     // Copy z
     memcpy(skb->bytes + offset, z, RUDRAKSH_len_K);
+
 }
 
 // KEM Encapsulation: 輸入 PK Bytes, 輸出 CT Bytes 和 Shared Secret Bytes
 void rudraksh_kem_encapsulate(public_key_bitstream *pkb, cipher_text *c, shared_secret *K)
 {
     // [Internal] 宣告內部結構
-    public_key pk;
-    poly m;
+    public_key pk = {0};
+    poly m = {0};
     
-    uint8_t msg[RUDRAKSH_len_K];
-    uint8_t kr[2 * RUDRAKSH_len_K];
-    uint8_t pkh[RUDRAKSH_len_K];
+    uint8_t msg[RUDRAKSH_len_K] = {0};
+    uint8_t kr[2 * RUDRAKSH_len_K] = {0};
+    uint8_t pkh[RUDRAKSH_len_K] = {0};
 
     // 1. 反序列化 Public Key (Unpack -> Internal PK)
     polyvec_frombytes_13bit(&pk.b, pkb->bytes);
@@ -223,14 +229,14 @@ void rudraksh_kem_encapsulate(public_key_bitstream *pkb, cipher_text *c, shared_
     arrange_msg(&m, msg); // 轉換為 poly
 
     // 3. 計算 pkh
-    rudraksh_hash(pkh, pkb->bytes, CRYPTO_PUBLICKEYBYTES);
+    rudraksh_hash(pkh, pkb->bytes, CRYPTO_PUBLICKEYBYTES,RUDRAKSH_len_K);
 
     // 4. 生成 (K, r)
     // buffer = pkh || msg
-    uint8_t buf[2 * RUDRAKSH_len_K];
+    uint8_t buf[2 * RUDRAKSH_len_K] = {0};
     memcpy(buf, pkh, RUDRAKSH_len_K);
     memcpy(buf + RUDRAKSH_len_K, msg, RUDRAKSH_len_K);
-    rudraksh_hash(kr, buf, 2 * RUDRAKSH_len_K);
+    rudraksh_hash(kr, buf, 2 * RUDRAKSH_len_K,2*RUDRAKSH_len_K);
 
     // 5. 輸出 Shared Secret K
     memcpy(K->bytes, kr, RUDRAKSH_len_K);
@@ -238,23 +244,24 @@ void rudraksh_kem_encapsulate(public_key_bitstream *pkb, cipher_text *c, shared_
     // 6. 加密 (PKE Encrypt 會自動處理成 c->bytes)
     // 使用 kr 的後半段作為隨機數 r
     rudraksh_pke_encrypt(&pk, &m, kr + RUDRAKSH_len_K, c);
+
 }
 
 // KEM Decapsulation: 輸入 SK Bytes, CT Bytes, 輸出 Shared Secret Bytes
 void rudraksh_kem_decapsulate(secret_key_bitstream *skb, cipher_text *c, shared_secret *K)
 {
     // [Internal] 宣告內部結構
-    secret_key sk;
-    public_key pk;
-    poly m_prime;
+    secret_key sk = {0};
+    public_key pk = {0};
+    poly m_prime = {0};
     
     // 輔助變數
-    uint8_t pkh[RUDRAKSH_len_K];
-    uint8_t z[RUDRAKSH_len_K];
-    uint8_t msg_prime[RUDRAKSH_len_K];
-    uint8_t kr_prime[2 * RUDRAKSH_len_K];
-    uint8_t k_fail[RUDRAKSH_len_K];
-    cipher_text c_star;
+    uint8_t pkh[RUDRAKSH_len_K] = {0};
+    uint8_t z[RUDRAKSH_len_K] = {0};
+    uint8_t msg_prime[RUDRAKSH_len_K] = {0};
+    uint8_t kr_prime[2 * RUDRAKSH_len_K] = {0};
+    uint8_t k_fail[2 * RUDRAKSH_len_K] = {0};
+    cipher_text c_star = {0};
 
     // 1. 反序列化 Secret Key (Unpack -> Internal SK & PK)
     size_t offset = 0;
@@ -279,10 +286,10 @@ void rudraksh_kem_decapsulate(secret_key_bitstream *skb, cipher_text *c, shared_
     original_msg(msg_prime, &m_prime); // Poly -> Bytes
 
     // 3. 重新計算 (K', r')
-    uint8_t buf[2 * RUDRAKSH_len_K];
+    uint8_t buf[2 * RUDRAKSH_len_K] = {0};
     memcpy(buf, pkh, RUDRAKSH_len_K);
     memcpy(buf + RUDRAKSH_len_K, msg_prime, RUDRAKSH_len_K);
-    rudraksh_hash(kr_prime, buf, 2 * RUDRAKSH_len_K);
+    rudraksh_hash(kr_prime, buf, 2 * RUDRAKSH_len_K,2*RUDRAKSH_len_K);
 
     // 4. 重新加密 (得到 c*)
     poly m_prime_poly;
@@ -290,10 +297,10 @@ void rudraksh_kem_decapsulate(secret_key_bitstream *skb, cipher_text *c, shared_
     rudraksh_pke_encrypt(&pk, &m_prime_poly, kr_prime + RUDRAKSH_len_K, &c_star);
 
     // 5. 計算失敗時的 Key (K'') = H(c || z)
-    uint8_t fail_input[CRYPTO_CIPHERTEXTBYTES + RUDRAKSH_len_K];
+    uint8_t fail_input[CRYPTO_CIPHERTEXTBYTES + RUDRAKSH_len_K] = {0};
     memcpy(fail_input, c->bytes, CRYPTO_CIPHERTEXTBYTES);
     memcpy(fail_input + CRYPTO_CIPHERTEXTBYTES, z, RUDRAKSH_len_K);
-    rudraksh_hash(k_fail, fail_input, sizeof(fail_input));
+    rudraksh_hash(k_fail, fail_input, sizeof(fail_input),2*RUDRAKSH_len_K);
 
     // 6. 驗證 c == c* (Constant Time)
     // 假設 verify 返回 0 代表相等 (成功)，-1 代表不等 (失敗)

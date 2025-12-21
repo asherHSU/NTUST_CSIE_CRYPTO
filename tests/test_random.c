@@ -30,11 +30,11 @@ int main()
         uint8_t out1[RUDRAKSH_len_K];
         uint8_t out2[RUDRAKSH_len_K];
 
-        rudraksh_hash(out1, (const uint8_t*)msg, msg_len);
+        rudraksh_hash(out1, (const uint8_t*)msg, msg_len,RUDRAKSH_len_K);
         print_hex("  Hash G Out (first 16b): ", out1, 16);
 
         // Determinism check
-        rudraksh_hash(out2, (const uint8_t*)msg, msg_len);
+        rudraksh_hash(out2, (const uint8_t*)msg, msg_len,RUDRAKSH_len_K);
         if (memcmp(out1, out2, RUDRAKSH_len_K) == 0) {
             printf("  >> Determinism Check: PASSED\n");
         } else {
@@ -45,7 +45,7 @@ int main()
         char msg_mod[50];
         strcpy(msg_mod, msg);
         msg_mod[msg_len-1] ^= 0xFF; // Flip last byte
-        rudraksh_hash(out2, (const uint8_t*)msg_mod, msg_len);
+        rudraksh_hash(out2, (const uint8_t*)msg_mod, msg_len,RUDRAKSH_len_K);
 
         if (memcmp(out1, out2, RUDRAKSH_len_K) != 0) {
             printf("  >> Avalanche Check  : PASSED\n");

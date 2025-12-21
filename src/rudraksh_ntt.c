@@ -135,6 +135,26 @@ void poly_basemul_acc(poly *r, const poly *a, const poly *b) {
     }
 }
 
+// 非 NTT 域多項式乘法累加 (Schoolbook Multiplication)
+void poly_basemul_acc_serial(poly *r, const poly *a, const poly *b) {
+    int32_t c[2 * RUDRAKSH_N] = {0}; // 用於存放中間結果，長度需要 2N
+
+    // 1. 執行標準卷積
+    for (int i = 0; i < RUDRAKSH_N; i++) {
+        for (int j = 0; j < RUDRAKSH_N; j++) {
+            c[i + j] = fqadd(c[i + j], fqmul(a->coeffs[i], b->coeffs[j]));
+        }
+    }
+
+    // 2. 根據 x^n + 1 = 0 進行約減 (Reduction)
+    // 原理：x^n = -1, x^{n+1} = -x, 依此類推
+    for (int i = 0; i < RUDRAKSH_N; i++) {
+        // r[i] = r[i] + (低次項c[i] - 高次項c[i+n])
+        int16_t reduced = fqsub(c[i], c[i + RUDRAKSH_N]);
+        r->coeffs[i] = fqadd(r->coeffs[i], reduced);
+    }
+}
+
 void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s) {
     // 1. 初始化結果向量 b 為 0
     for (int i = 0; i < RUDRAKSH_K; i++) {
@@ -146,7 +166,7 @@ void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s) {
     for (int i = 0; i < RUDRAKSH_K; i++) {
         for (int j = 0; j < RUDRAKSH_K; j++) {
             // 將 A[j][i] 與 s[j] 相乘並累加到 b[i]
-            poly_basemul_acc(&b->vec[i], &A->matrix[j][i], &s->vec[j]);
+            poly_basemul_acc_serial(&b->vec[i], &A->matrix[j][i], &s->vec[j]);
         }
     }
 }
@@ -157,7 +177,7 @@ void poly_matrix_vec_mul(polyvec *b, const polymat *A, const polyvec *s) {
         poly_zero(&b->vec[i]); // 初始化為 0
         for (int j = 0; j < RUDRAKSH_K; j++) {
             // 注意：這裡是 A[i][j]，代表第 i 列第 j 行
-            poly_basemul_acc(&b->vec[i], &A->matrix[i][j], &s->vec[j]);
+            poly_basemul_acc_serial(&b->vec[i], &A->matrix[i][j], &s->vec[j]);
         }
         // 根據實作，這裡可能需要做 montgomery reduction 或保留在 montgomery domain
         // 假設 poly_basemul_acc 已經處理好累加
@@ -172,7 +192,7 @@ void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s) {
     // c = sum( b[i] * s[i] )
     for (int i = 0; i < RUDRAKSH_K; i++) {
         // 將 b[i] 與 s[i] 相乘並累加到 c
-        poly_basemul_acc(c, &b->vec[i], &s->vec[i]);
+        poly_basemul_acc_serial(c, &b->vec[i], &s->vec[i]);
     }
 }
 
@@ -200,3 +220,5 @@ void poly_sub(poly *r, const poly *a, const poly *b) {
         r->coeffs[i] = fqsub(a->coeffs[i], b->coeffs[i]);
     }
 }
+
+//

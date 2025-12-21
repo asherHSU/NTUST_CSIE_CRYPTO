@@ -85,10 +85,11 @@ void rudraksh_pke_test()
     polyvec_cbd_eta(&s, &e, seed_se);
 
     // polyvec_zero(&e);
+    // polyvec_zero(&s);
 
     // 3. 矩陣運算 (NTT Domain)
-    polyvec_ntt(&s);
-    polyvec_ntt(&e);
+    // polyvec_ntt(&s);
+    // polyvec_ntt(&e);
 
     // 計算 b = A * s + e 
     // 先計算 A * s 存入 pk->b
@@ -121,18 +122,19 @@ void rudraksh_pke_test()
     poly_cbd_eta(&e_prime_prime, r, 2 * RUDRAKSH_K); // Nonce offset
 
     // polyvec_zero(&e_prime);
+    // polyvec_zero(&s_prime);
 
     // 3. NTT 運算
-    polyvec_ntt(&s_prime);
+    // polyvec_ntt(&s_prime);
 
     // 4. 計算 u (即 b_prime) = A^T * s' + e'
     poly_matrix_trans_vec_mul(&b_prime, &A, &s_prime);  // b' = A^T * s'
-    polyvec_invntt_tomont(&b_prime);                    // intt(b')
+    // polyvec_invntt_tomont(&b_prime);                    // intt(b')
     polyvec_add(&u, &b_prime, &e_prime);                // 加誤差 e'    
 
     // 5. 計算 v (即 c_m_hat) = b^T * s' + e'' + Encode(m)
     poly_vector_vector_mul(&v, &b, &s_prime);           // cm(v) = b^T * s'
-    poly_invntt(&v);                             // cm = intt(cm)
+    // poly_invntt(&v);                             // cm = intt(cm)
 
     for (int i = 0; i < RUDRAKSH_N; i++) 
     {
@@ -147,29 +149,32 @@ void rudraksh_pke_test()
     // v = v + Encode(m)
     poly_add(&v, &v, &m_encoded);
 
+
+    uint8_t u_bytes[720];
+    uint8_t v_bytes[40];
     // 6. 壓縮並寫入 External Ciphertext Bytes
     // u 的部分 (K * N * 10 bits) -> bytes
-    // polyvec_compress_u(c->bytes, &b_prime);
+    polyvec_compress_u(u_bytes, &u);
 
     // v 的部分 (N * 3 bits) -> bytes (接在 u 後面)
-    // poly_compress_v(c->bytes + CRYPTO_CIPHERTEXTBYTES_VEC_U, &c_m_hat);
+    poly_compress_v(v_bytes,&v);
 
     polyvec u_prime;
     poly v_prime, v_temp;
 
-    u_prime = u;
-    v_prime = v;
+    // u_prime = u;
+    // v_prime = v;
 
     // 1. 解壓縮 (Unpack Bytes -> Poly)
     // 從 c->bytes 讀取 u
-    // polyvec_decompress_u(&u_prime, c->bytes);
+    polyvec_decompress_u(&u_prime, u_bytes);
     // 從 c->bytes 偏移處讀取 v
-    // poly_decompress_v(&v_prime, c->bytes + CRYPTO_CIPHERTEXTBYTES_VEC_U); //!
+    poly_decompress_v(&v_prime, v_bytes); //!
 
     // 2. 運算
-    polyvec_ntt(&u_prime);
+    // polyvec_ntt(&u_prime);
     poly_vector_vector_mul(&v_temp, &u_prime, &s); // u^T *
-    poly_invntt(&v_temp);
+    // poly_invntt(&v_temp);
 
     // m'' = v - s^T * u
     poly_sub(&v_temp,&v_prime,&v_temp);

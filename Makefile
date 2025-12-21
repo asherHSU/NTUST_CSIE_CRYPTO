@@ -50,9 +50,10 @@ random: wdirs test_random
 gen: wdirs test_generator
 ntt: wdirs test_ntt_win
 crypto: wdirs test_crypto
-debug1: wdirs test_debug
-debug2 : wdirs debug
+debug: wdirs test_debug
+pke : wdirs test_pke
 math : wdirs tset_math
+kem : wdirs test_kem
 
 # 建立必要的資料夾 (避免編譯時報錯說資料夾不存在)
 dirs:
@@ -114,17 +115,24 @@ test_debug: $(CORE_OBJS) $(TEST_DIR)/test_debug.c
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_debug.exe"
 	./$(BIN_DIR)/test_debug.exe
 
-debug: $(CORE_OBJS) $(TEST_DIR)/debug_crypto.c
-	@echo "Building Debug Test..."
-	$(CC) $(CFLAGS) $(TEST_DIR)/debug_crypto.c $(CORE_OBJS) -o $(BIN_DIR)/debug_crypto.exe
-	@echo "Build Success! Run with: ./$(BIN_DIR)/debug_crypto.exe"
-	./$(BIN_DIR)/debug_crypto.exe
+test_pke: $(CORE_OBJS) $(TEST_DIR)/test_pke.c
+	@echo "Building pke Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_pke.c $(CORE_OBJS) -o $(BIN_DIR)/test_pke.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_pke.exe"
+	./$(BIN_DIR)/test_pke.exe
 
 tset_math: $(CORE_OBJS) $(TEST_DIR)/test_math.c
 	@echo "Building ntt mult/add/sub Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_math.c $(CORE_OBJS) -o $(BIN_DIR)/test_math.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_math.exe"
 	./$(BIN_DIR)/test_math.exe
+
+test_kem: $(CORE_OBJS) $(TEST_DIR)/test_kem.c
+	@echo "Building KEM Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_kem.c $(CORE_OBJS) -o $(BIN_DIR)/test_kem.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_kem.exe"
+	./$(BIN_DIR)/test_kem.exe
+
 # ------------------------------------------
 # 清理規則
 # ------------------------------------------
