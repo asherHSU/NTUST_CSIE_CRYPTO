@@ -6,14 +6,18 @@
 // 這是我們在 step 2 生成的數據，透過 extern 引用
 extern const int16_t zetas[RUDRAKSH_N];
 
+
+// =========================================================
+// 1. base
+// =========================================================
 /**
  * 基礎模乘法 (Modular Multiplication)
  * 計算 (a * b) % Q
  * 注意：這裡使用 int32_t 來防止溢位 (7681 * 7681 < 2^31)
  */
+// 模乘法
 int16_t fqmul(int16_t a, int16_t b) {
-    int32_t res = (int32_t)a * b;
-    return (int16_t)(res % RUDRAKSH_Q);
+    return (int32_t)a * b % RUDRAKSH_Q;
 }
 
 /**
@@ -41,152 +45,84 @@ void poly_zero(poly *p) {
     memset(p->coeffs, 0, sizeof(p->coeffs));
 }
 
-/**
- * 位元反轉 (Bit Reversal) 用於 N=64
- * 用於 Cooley-Tukey NTT 的輸入重排
- * 例如: index 1 (000001) -> index 32 (100000)
- */
-void bitrev_vector(int16_t* poly_coeffs) {
-    int i, j;
-    int16_t temp;
-    
-    j = 0;
-    for (i = 1; i < RUDRAKSH_N; i++) {
-        int bit = RUDRAKSH_N >> 1;
-        while (j & bit) {
-            j ^= bit;
-            bit >>= 1;
-        }
-        j ^= bit;
-        
-        // 交換
-        if (i < j) {
-            temp = poly_coeffs[i];
-            poly_coeffs[i] = poly_coeffs[j];
-            poly_coeffs[j] = temp;
-        }
-    }
+void polyvec_zero(polyvec *pv) {
+    // 同樣地，可以直接對整個向量結構進行 memset
+    memset(pv, 0, sizeof(polyvec));
 }
-/**
- * Forward NTT (Number Theoretic Transform)
- * 演算法: Iterative Cooley-Tukey (Decimation-in-Time)
- * 複雜度: O(N log N)
- */
-void poly_ntt(poly *p) {
-    // 1. 先進行位元反轉重排 (Bit-reversal permutation)
-    bitrev_vector(p->coeffs);
+// =========================================================
+// 2.NTT / INTT
+// =========================================================
+#define INV_2 3841
+// 需使用 Python 生成的正確表
+// static const int16_t zetas[64] = { /* ... */ };
+// static const int16_t zetas_inv[64] = { /* ... */ };
 
-    int len, start, j;
-    int16_t zeta;
-    
-    // 2. 蝴蝶運算 (Butterfly Operations)
-    // 層數 loop: len = 2, 4, 8, 16, 32, 64
-    for (len = 2; len <= RUDRAKSH_N; len <<= 1) {
-        
-        int half_len = len >> 1;
-        // 旋轉因子 zeta 步進: 因為我們有 N 個 zeta，但每一層只用到部分
-        // 在標準 CT 演算法中，每一層使用的 zeta 間隔不同
-        int step = RUDRAKSH_N / len; 
-
-        // 區塊 loop
-        for (start = 0; start < RUDRAKSH_N; start += len) {
-            
-            // 每一層的第一個 butterfly 使用 zeta^0 = 1
-            // 但為了對應我們產生的 natural order table，我們需要特殊的索引邏輯
-            // 這裡簡化邏輯：直接針對每個蝴蝶計算對應的 zeta
-            // (注意：這不是最高效的查表法，但是最容易理解且正確的寫法)
-            
-            for (j = 0; j < half_len; j++) {
-                // 取得正確的旋轉因子
-                // 在這一層，我們需要 zetas[step * j]
-                // 注意：我們的 zetas 表是 natural order
-                zeta = zetas[j * step];
-
-                // 蝴蝶運算核心 (CT Butterfly)
-                // U = A
-                // V = B * zeta
-                // New A = U + V
-                // New B = U - V
-                
-                int16_t u = p->coeffs[start + j];
-                int16_t v = fqmul(p->coeffs[start + j + half_len], zeta);
-
-                p->coeffs[start + j]            = fqadd(u, v);
-                p->coeffs[start + j + half_len] = fqsub(u, v);
-            }
-        }
-    }
-}
-
-/**
- * 模反元素 (Modular Inverse) 用於計算 N^-1
- * 利用費馬小定理: a^(Q-2) = a^-1 mod Q
- */
-int16_t fqinv(int16_t a) {
-    int32_t base = a;
-    int32_t exp = RUDRAKSH_Q - 2;
-    int32_t res = 1;
-    
-    while (exp > 0) {
-        if (exp & 1) res = (res * base) % RUDRAKSH_Q;
-        base = (base * base) % RUDRAKSH_Q;
-        exp >>= 1;
-    }
+// 論文 Algorithm 1 的化約函數 (保持不變)
+static int16_t rudraksh_reduce(int32_t c) {
+    int32_t c0 = c & 0x1FFF;
+    int32_t c1 = (c >> 13) & 0xF;
+    int32_t c2 = (c >> 17) & 0xF;
+    int32_t c3 = (c >> 21) & 0xF;
+    int32_t c4 = (c >> 25) & 0x1;
+    int32_t temp0 = c4 + c3;
+    int32_t temp1 = temp0 + c2;
+    int32_t temp2 = temp1 + c1;
+    int32_t temp3 = (temp2 << 1) - temp0;
+    int32_t temp4 = (temp3 << 4) - temp1;
+    int32_t temp5 = (temp4 << 4) - temp2;
+    int32_t temp6 = temp5 + c0;
+    int32_t res = (-(c4 << 12)) + temp6;
+    while (res < 0) res += RUDRAKSH_Q;
+    while (res >= RUDRAKSH_Q) res -= RUDRAKSH_Q;
     return (int16_t)res;
 }
 
-/**
- * Inverse NTT (INTT) - 修正版
- * 演算法: Inverse Iterative Cooley-Tukey (Symmetric to Forward NTT)
- * 邏輯: Bit-Reverse -> Butterfly(using zeta^-1) -> Scale by N^-1
- */
-void poly_invntt_tomont(poly *p) {
-    // [修正 1] Bit-reversal 必須在開始時做，跟 Forward NTT 一樣
-    bitrev_vector(p->coeffs);
-
-    int len, start, j;
-    int16_t zeta, inv_zeta;
-    
-    // [修正 2] 使用跟 Forward NTT 完全一樣的迴圈結構 (Bottom-up)
-    for (len = 2; len <= RUDRAKSH_N; len <<= 1) {
-        int half_len = len >> 1;
-        int step = RUDRAKSH_N / len;
-        
-        for (start = 0; start < RUDRAKSH_N; start += len) {
-            for (j = 0; j < half_len; j++) {
-                // 取得正向的 zeta
-                zeta = zetas[j * step];
-                
-                // [修正 3] 計算 zeta 的模反元素 (zeta^-1)
-                // 在優化版中這應該查表，但為了正確性我們先即時計算
-                inv_zeta = fqinv(zeta);
-
-                // [修正 4] 使用標準 CT 蝴蝶運算，但是乘上 inv_zeta
-                // U = A
-                // V = B * zeta^-1
-                int16_t u = p->coeffs[start + j];
-                int16_t v = fqmul(p->coeffs[start + j + half_len], inv_zeta);
-
-                p->coeffs[start + j]            = fqadd(u, v);
-                p->coeffs[start + j + half_len] = fqsub(u, v);
+// 正向 NTT: Cooley-Tukey DIF (輸入自然順序 -> 輸出位元反轉)
+void poly_ntt(poly *p) {
+    int t = 32, k = 1;
+    for (int m = 1; m < 64; m <<= 1) {
+        for (int i = 0; i < m; i++) {
+            int16_t zeta = zetas[k++]; // zetas 必須按位元反轉順序預生成
+            for (int j = i * 2 * t; j < i * 2 * t + t; j++) {
+                int16_t u = p->coeffs[j];
+                int16_t v = p->coeffs[j + t];
+                p->coeffs[j] = rudraksh_reduce(u + v);
+                // 負循環關鍵：先減後乘
+                p->coeffs[j + t] = rudraksh_reduce((int32_t)(u - v + RUDRAKSH_Q) * zeta);
             }
         }
+        t >>= 1;
     }
-
-    // [修正 5] 最後縮放：除以 N (乘以 N^-1 mod Q)
-    // 64^-1 mod 7681 = 7561 (也就是 -120)
-    int16_t n_inv = fqinv(RUDRAKSH_N); 
-    
-    for(int i=0; i<RUDRAKSH_N; i++) {
-        p->coeffs[i] = fqmul(p->coeffs[i], n_inv);
-    }
-    
-    // [修正 6] 移除最後的 bitrev，因為我們一開始就做過了，
-    // Cooley-Tukey 的輸出本身就是 Natural Order。
 }
 
+// 反向 INTT: Gentleman-Sande DIT (輸入位元反轉 -> 輸出自然順序)
+void poly_invntt(poly *p) {
+    int t = 1;
+    for (int m = 32; m >= 1; m >>= 1) {
+        int start_k = m; 
+        for (int i = 0; i < m; i++) {
+            // 注意：這裡使用反向因子，且順序與正向對稱
+            int16_t zeta_inv = zetas_inv[start_k++]; 
+            for (int j = i * 2 * t; j < i * 2 * t + t; j++) {
+                int16_t u = p->coeffs[j];
+                // 負循環關鍵：先乘後加減
+                int16_t v = rudraksh_reduce((int32_t)p->coeffs[j + t] * zeta_inv);
+                
+                int16_t res_u = rudraksh_reduce(u + v);
+                int16_t res_v = rudraksh_reduce(u - v + RUDRAKSH_Q);
+                
+                // 論文第 16 頁：每一層除以 2 (INV_2 = 3841)
+                p->coeffs[j] = rudraksh_reduce((int32_t)res_u * INV_2);
+                p->coeffs[j + t] = rudraksh_reduce((int32_t)res_v * INV_2);
+            }
+        }
+        t <<= 1;
+    }
+}
+
+
 // =========================================================
-// 2.NTT 域點乘
+// 3.NTT 域點乘
 // =========================================================
 
 // 多項式點對點乘法 (Point-wise Multiplication)
@@ -215,6 +151,19 @@ void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s) {
     }
 }
 
+// 計算 b = A * s (標準矩陣向量乘法)
+void poly_matrix_vec_mul(polyvec *b, const polymat *A, const polyvec *s) {
+    for (int i = 0; i < RUDRAKSH_K; i++) {
+        poly_zero(&b->vec[i]); // 初始化為 0
+        for (int j = 0; j < RUDRAKSH_K; j++) {
+            // 注意：這裡是 A[i][j]，代表第 i 列第 j 行
+            poly_basemul_acc(&b->vec[i], &A->matrix[i][j], &s->vec[j]);
+        }
+        // 根據實作，這裡可能需要做 montgomery reduction 或保留在 montgomery domain
+        // 假設 poly_basemul_acc 已經處理好累加
+    }
+}
+
 void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s) {
     // 1. 初始化結果多項式 c 為 0
     poly_zero(c);
@@ -224,5 +173,30 @@ void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s) {
     for (int i = 0; i < RUDRAKSH_K; i++) {
         // 將 b[i] 與 s[i] 相乘並累加到 c
         poly_basemul_acc(c, &b->vec[i], &s->vec[i]);
+    }
+}
+
+// =========================================================
+// 3. poly(vec) 加法/減法
+// =========================================================
+
+// 單一多項式加法: r = a + b
+void poly_add(poly *r, const poly *a, const poly *b) {
+    for (int i = 0; i < RUDRAKSH_N; i++) {
+        r->coeffs[i] = fqadd(a->coeffs[i], b->coeffs[i]);
+    }
+}
+
+// 多項式向量加法: r = a + b
+void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b) {
+    for (int i = 0; i < RUDRAKSH_K; i++) {
+        poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
+    }
+}
+
+// 多項式向量減法: r = a - b
+void poly_sub(poly *r, const poly *a, const poly *b) {
+    for (int i = 0; i < RUDRAKSH_N; i++) {
+        r->coeffs[i] = fqsub(a->coeffs[i], b->coeffs[i]);
     }
 }

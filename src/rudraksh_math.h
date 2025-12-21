@@ -32,6 +32,7 @@ typedef struct {
 // 3. 全域變數宣告
 // ==========================================================
 extern const int16_t zetas[RUDRAKSH_N];
+extern const int16_t zetas_inv[RUDRAKSH_N];
 
 // ==========================================================
 // 4. 數學核心函式 (Member A)
@@ -39,7 +40,7 @@ extern const int16_t zetas[RUDRAKSH_N];
 
 // NTT 轉換
 void poly_ntt(poly *p);
-void poly_invntt_tomont(poly *p);
+void poly_invntt(poly *p);
 
 // 基礎運算
 int16_t fqmul(int16_t a, int16_t b);
@@ -48,10 +49,17 @@ int16_t fqsub(int16_t a, int16_t b);
 int16_t fqinv(int16_t a);
     // add new
 void poly_zero(poly *p); 
+void polyvec_zero(polyvec *pv); 
 
-// NTT 運算
+// NTT(poly) 運算
+    // 加法
+void poly_add(poly *r, const poly *a, const poly *b);          // r = a + b
+void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b); // Vector r = Vector a + Vector b
+void poly_sub(poly *r, const poly *a, const poly *b);
+    //乘法
 void poly_basemul_acc(poly *r, const poly *a, const poly *b);
-void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s); // matrix - vector 乘法
+void poly_matrix_trans_vec_mul(polyvec *b, const polymat *A, const polyvec *s); // matrix (轉置) - vector 乘法
+void poly_matrix_vec_mul(polyvec *b, const polymat *A, const polyvec *s);        // matrix - vector 乘法
 void poly_vector_vector_mul(poly *c, const polyvec *b, const polyvec *s); // vector - vector 乘法
 
 

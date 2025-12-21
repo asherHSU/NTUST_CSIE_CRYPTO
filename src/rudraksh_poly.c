@@ -151,57 +151,70 @@ void poly_decompress_u(poly *r, const uint8_t *a) {
  * Bit Packing: 8 個係數 (24 bits) -> 3 bytes
  */
 void poly_compress_v(uint8_t *r, const poly *a) {
-    int i;
     uint8_t t[8];
-    int ctr = 0;
+    int idx = 0; // r 的索引
 
-    for(i=0; i<RUDRAKSH_N/8; i++) {
+    // 每次處理 8 個係數，產出 3 個 bytes
+    for(int i=0; i<RUDRAKSH_N/8; i++) {
         for(int j=0; j<8; j++) {
-            // round(8 * x / 7681)
+            // 1. 壓縮公式: y = round(8 * x / q) % 8
+            // 實作: (x * 8 + q/2) / q
             uint32_t val = (uint32_t)a->coeffs[8*i+j];
-            val = (val << 3) + (RUDRAKSH_Q/2);
-            val = val / RUDRAKSH_Q;
-            t[j] = val & 0x7; // 取 3 bits
+            val = ((val << 3) + (RUDRAKSH_Q/2)) / RUDRAKSH_Q;
+            t[j] = val & 0x7;
         }
 
-        // Pack 8x3 bits -> 3 bytes
-        // byte 0: t0(3) | t1(3) | t2(2)
-        r[ctr+0] = (t[0]) | (t[1] << 3) | (t[2] << 6);
-        // byte 1: t2(1) | t3(3) | t4(3) | t5(1)
-        r[ctr+1] = (t[2] >> 2) | (t[3] << 1) | (t[4] << 4) | (t[5] << 7);
-        // byte 2: t5(2) | t6(3) | t7(3)
-        r[ctr+2] = (t[5] >> 1) | (t[6] << 2) | (t[7] << 5);
+        // 2. 打包 (Packing)
+        // Byte 0: t0[0-2] | t1[0-2]<<3 | t2[0-1]<<6
+        r[idx+0] = t[0] | (t[1] << 3) | (t[2] << 6);
         
-        ctr += 3;
+        // Byte 1: t2[2] | t3[0-2]<<1 | t4[0-2]<<4 | t5[0]<<7
+        r[idx+1] = (t[2] >> 2) | (t[3] << 1) | (t[4] << 4) | (t[5] << 7);
+        
+        // Byte 2: t5[1-2] | t6[0-2]<<2 | t7[0-2]<<5
+        r[idx+2] = (t[5] >> 1) | (t[6] << 2) | (t[7] << 5);
+        
+        idx += 3;
     }
 }
 
 void poly_decompress_v(poly *r, const uint8_t *a) {
-    int i;
-    int ctr = 0;
-    for(i=0; i<RUDRAKSH_N/8; i++) {
+    int idx = 0; // a 的索引
+
+    // 每次讀取 3 個 bytes，還原 8 個係數
+    for(int i=0; i<RUDRAKSH_N/8; i++) {
         uint8_t t[8];
         
-        // Unpack 3 bytes -> 8x3 bits
-        t[0] = a[ctr+0] & 0x7;
-        t[1] = (a[ctr+0] >> 3) & 0x7;
-        t[2] = ((a[ctr+0] >> 6) | (a[ctr+1] << 2)) & 0x7;
-        t[3] = (a[ctr+1] >> 1) & 0x7;
-        t[4] = (a[ctr+1] >> 4) & 0x7;
-        t[5] = ((a[ctr+1] >> 7) | (a[ctr+2] << 1)) & 0x7;
-        t[6] = (a[ctr+2] >> 2) & 0x7;
-        t[7] = (a[ctr+2] >> 5) & 0x7;
+        // 1. 解包 (Unpacking)
+        // 還原 t0, t1
+        t[0] = a[idx+0] & 0x7;
+        t[1] = (a[idx+0] >> 3) & 0x7;
+        
+        // 還原 t2 (跨 Byte 0 和 Byte 1)
+        t[2] = (a[idx+0] >> 6) | ((a[idx+1] & 0x1) << 2);
+        
+        // 還原 t3, t4
+        t[3] = (a[idx+1] >> 1) & 0x7;
+        t[4] = (a[idx+1] >> 4) & 0x7;
+        
+        // 還原 t5 (跨 Byte 1 和 Byte 2)
+        t[5] = (a[idx+1] >> 7) | ((a[idx+2] & 0x3) << 1);
+        
+        // 還原 t6, t7
+        t[6] = (a[idx+2] >> 2) & 0x7;
+        t[7] = (a[idx+2] >> 5) & 0x7;
 
+        // 2. 解壓縮公式: x = round(q * y / 8)
+        // 實作: (y * q + 4) >> 3
         for(int j=0; j<8; j++) {
-            // round(7681 * x / 8)
             uint32_t val = (uint32_t)t[j];
-            val = (val * RUDRAKSH_Q) + 4; // + t/2 (4)
-            val >>= 3; // divide by 8
+            val = (val * RUDRAKSH_Q + 4) >> 3;
             r->coeffs[8*i+j] = (int16_t)val;
         }
-        ctr += 3;
+        idx += 3;
     }
 }
+
 
 // ==========================================================
 // 4. [新增] 13-bit Serialization (用於 PK 和 SK)
@@ -305,6 +318,6 @@ void polyvec_ntt(polyvec *r) {
 
 void polyvec_invntt_tomont(polyvec *r) {
     for(int i=0; i<RUDRAKSH_K; i++) {
-        poly_invntt_tomont(&r->vec[i]);
+        poly_invntt(&r->vec[i]);
     }
 }

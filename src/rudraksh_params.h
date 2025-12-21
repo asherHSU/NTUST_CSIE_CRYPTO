@@ -29,9 +29,17 @@
 
 // 6. 金鑰與密文大小 (Bytes)
 // 根據論文 Section 3.6 文字描述 [cite: 491]
-#define CRYPTO_PUBLICKEYBYTES  952
-#define CRYPTO_SECRETKEYBYTES  1920
-#define CRYPTO_CIPHERTEXTBYTES 760
+
+// pk
+#define CRYPTO_PUBLICKEYBYTES  952  // KEM, PKE : 952 = seedA + b = 936 + 16 = 952
+#define CRYPTO_PUBLICKEYBYTES_VECTOR_B 936 // 936 Bytes = 9*64*13bits
+// sk
+#define CRYPTO_SECRETKEYBYTES  1920 // KEM : 1920 = s + z + pkh + pk = 936 + 16 + 16 + 952 = 1920
+#define CRYPTO_SECRETKEYBYTES_PKE  936 //同 vec b
+// cipher_text
+#define CRYPTO_CIPHERTEXTBYTES 760  // PKE : 760 = u + v + 對齊 = 720 + 32 + 8 
+#define CRYPTO_CIPHERTEXTBYTES_VEC_U 720 // 720 Bytes = 9*64*10 bits
+#define CRYPTO_CIPHERTEXTBYTES_V 32 // 32 Bytes = 4 bit*64
 
 // len_K 定義為 16 bytes (128 bits) 的共享金鑰長度
 #define RUDRAKSH_len_K 16

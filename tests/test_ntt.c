@@ -41,7 +41,7 @@ int main() {
 
     printf("\n=== Inverse NTT Test ===\n");
     // 接續剛剛的結果，現在 a 處於 NTT 域
-    poly_invntt_tomont(&a);
+    poly_invntt(&a);
     
     print_poly("Output (INTT)", &a);
 
@@ -148,5 +148,7 @@ int main() {
     } else {
         printf(">> Matrix-Vector Mul Test FAILED!\n");
     }
+
+
     return 0;
 }

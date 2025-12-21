@@ -20,7 +20,10 @@ TEST_DIR = tests
 CORE_SRCS = $(SRC_DIR)/rudraksh_ntt.c \
             $(SRC_DIR)/rudraksh_ntt_data.c \
 			$(SRC_DIR)/rudraksh_ascon.c \
-            $(SRC_DIR)/rudraksh_poly.c 
+            $(SRC_DIR)/rudraksh_poly.c \
+			$(SRC_DIR)/rudraksh_randombytes.c\
+			$(SRC_DIR)/rudraksh_generator.c\
+			$(SRC_DIR)/rudraksh_crypto.c
 	
 CORE_SRCS_RND = 	$(SRC_DIR)/rudraksh_randombytes.c\
 					$(SRC_DIR)/rudraksh_ascon.c 
@@ -46,6 +49,10 @@ all: dirs test_ntt
 random: wdirs test_random
 gen: wdirs test_generator
 ntt: wdirs test_ntt_win
+crypto: wdirs test_crypto
+debug1: wdirs test_debug
+debug2 : wdirs debug
+math : wdirs tset_math
 
 # 建立必要的資料夾 (避免編譯時報錯說資料夾不存在)
 dirs:
@@ -94,6 +101,30 @@ test_ntt_win: $(CORE_OBJS) $(TEST_DIR)/test_ntt.c
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_ntt.c $(CORE_OBJS) -o $(BIN_DIR)/test_ntt.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ntt.exe"
 	./$(BIN_DIR)/test_ntt.exe
+
+test_crypto: $(CORE_OBJS) $(TEST_DIR)/test_crypto.c
+	@echo "Building PKE/KEM Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_crypto.c $(CORE_OBJS) -o $(BIN_DIR)/test_crypto.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_crypto.exe"
+	./$(BIN_DIR)/test_crypto.exe
+
+test_debug: $(CORE_OBJS) $(TEST_DIR)/test_debug.c
+	@echo "Building Debug Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_debug.c $(CORE_OBJS) -o $(BIN_DIR)/test_debug.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_debug.exe"
+	./$(BIN_DIR)/test_debug.exe
+
+debug: $(CORE_OBJS) $(TEST_DIR)/debug_crypto.c
+	@echo "Building Debug Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/debug_crypto.c $(CORE_OBJS) -o $(BIN_DIR)/debug_crypto.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/debug_crypto.exe"
+	./$(BIN_DIR)/debug_crypto.exe
+
+tset_math: $(CORE_OBJS) $(TEST_DIR)/test_math.c
+	@echo "Building ntt mult/add/sub Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_math.c $(CORE_OBJS) -o $(BIN_DIR)/test_math.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_math.exe"
+	./$(BIN_DIR)/test_math.exe
 # ------------------------------------------
 # 清理規則
 # ------------------------------------------
