@@ -9,7 +9,9 @@ void print_poly(const char* msg, poly *p) {
 }
 
 int main() {
-    printf("=== Rudraksh NTT Unit Test ===\n");
+    printf("\n=============================================\n");
+    printf("   NTT Unit Tests\n");
+    printf("=============================================\n");
     printf("N=%d, Q=%d, Zeta=%d\n", RUDRAKSH_N, RUDRAKSH_Q, RUDRAKSH_ZETA);
 
     poly a;
@@ -149,6 +151,8 @@ int main() {
         printf(">> Matrix-Vector Mul Test FAILED!\n");
     }
 
-
+    printf("\n=============================================\n");
+    printf("   End of Tests\n");
+    printf("=============================================\n");
     return 0;
 }

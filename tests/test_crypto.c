@@ -329,7 +329,7 @@ int main() {
     // 執行測試
     test_pke_correctness();
     test_kem_correctness();
-    // test_kem_implicit_rejection();
+    test_kem_implicit_rejection();
 
     // 簡單的壓力測試 (跑 100 次確保沒有隨機性導致的邊緣錯誤)
     printf("\n=== Test 4: Stress Test (100 iterations) ===\n");

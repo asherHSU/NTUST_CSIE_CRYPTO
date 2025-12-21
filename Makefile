@@ -24,13 +24,6 @@ CORE_SRCS = $(SRC_DIR)/rudraksh_ntt.c \
 			$(SRC_DIR)/rudraksh_randombytes.c\
 			$(SRC_DIR)/rudraksh_generator.c\
 			$(SRC_DIR)/rudraksh_crypto.c
-	
-CORE_SRCS_RND = 	$(SRC_DIR)/rudraksh_randombytes.c\
-					$(SRC_DIR)/rudraksh_ascon.c 
-
-CORE_SRCS_Gen = $(SRC_DIR)/rudraksh_randombytes.c\
-					$(SRC_DIR)/rudraksh_ascon.c \
-					$(SRC_DIR)/rudraksh_generator.c\
 
 # 將 .c 檔案列表轉換為 .o (Object file) 列表
 # 例如: src/ntt.c -> build/ntt.o
@@ -44,24 +37,37 @@ CORE_OBJS_Gen = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS_Gen))
 # ==========================================
 
 # 預設目標：當你只打 'make' 時，會執行這個
-all: dirs test_ntt
 
-random: wdirs test_random
-gen: wdirs test_generator
-ntt: wdirs test_ntt_win
-crypto: wdirs test_crypto
-debug: wdirs test_debug
-pke : wdirs test_pke
-math : wdirs tset_math
-kem : wdirs test_kem
+ALL_TESTS := \
+	test_random \
+	test_generator \
+	test_ntt \
+	test_debug \
+	test_math \
+	test_pke \
+	test_kem \
+	test_crypto
+
+all: dirs $(ALL_TESTS)
+
+random:   dirs test_random
+gen:      dirs test_generator
+ntt:      dirs test_ntt
+crypto:   dirs test_crypto	# 加解密最後終測試
+debug:    dirs test_debug
+pke:      dirs test_pke
+math:     dirs test_math
+kem:      dirs test_kem
+
 
 # 建立必要的資料夾 (避免編譯時報錯說資料夾不存在)
-dirs:
+# for Linux / GitHub Actions
+ldirs: 
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BIN_DIR)
 
-# 	windows 不能加上-p會被當成資料夾
-wdirs:
+# 	windows 原生 cmd -p 會被當作資料夾名稱
+dirs:
 	@mkdir  $(BUILD_DIR)
 	@mkdir  $(BIN_DIR)
 
@@ -81,27 +87,22 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 # 編譯 NTT 單元測試
 test_ntt: $(CORE_OBJS) $(TEST_DIR)/test_ntt.c
 	@echo "Building NTT Unit Test..."
-	$(CC) $(CFLAGS) $(TEST_DIR)/test_ntt.c $(CORE_OBJS) -o $(BIN_DIR)/test_ntt
-	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ntt"
-
-# 編譯 random 測試
-test_random: $(CORE_OBJS_RND) $(TEST_DIR)/test_random.c
-	@echo "Building Random Unit Test..."
-	$(CC) $(CFLAGS) $(TEST_DIR)/test_random.c $(CORE_OBJS_RND) -o $(BIN_DIR)/test_random.exe
-	@echo "Build Success! Run with: ./$(BIN_DIR)/test_random.exe"
-	./$(BIN_DIR)/test_random.exe
-
-test_generator: $(CORE_OBJS_Gen) $(TEST_DIR)/test_generator.c
-	@echo "Building Generator Unit Test..."
-	$(CC) $(CFLAGS) $(TEST_DIR)/test_generator.c $(CORE_OBJS_Gen) -o $(BIN_DIR)/test_generator.exe
-	@echo "Build Success! Run with: ./$(BIN_DIR)/test_generator.exe"
-	./$(BIN_DIR)/test_generator.exe
-
-test_ntt_win: $(CORE_OBJS) $(TEST_DIR)/test_ntt.c
-	@echo "Building NTT Unit Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_ntt.c $(CORE_OBJS) -o $(BIN_DIR)/test_ntt.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ntt.exe"
 	./$(BIN_DIR)/test_ntt.exe
+
+# 編譯 random 測試
+test_random: $(CORE_SRCS) $(TEST_DIR)/test_random.c
+	@echo "Building Random Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_random.c $(CORE_SRCS) -o $(BIN_DIR)/test_random.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_random.exe"
+	./$(BIN_DIR)/test_random.exe
+
+test_generator: $(CORE_SRCS) $(TEST_DIR)/test_generator.c
+	@echo "Building Generator Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_generator.c $(CORE_SRCS) -o $(BIN_DIR)/test_generator.exe
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_generator.exe"
+	./$(BIN_DIR)/test_generator.exe
 
 test_crypto: $(CORE_OBJS) $(TEST_DIR)/test_crypto.c
 	@echo "Building PKE/KEM Test..."
@@ -121,7 +122,7 @@ test_pke: $(CORE_OBJS) $(TEST_DIR)/test_pke.c
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_pke.exe"
 	./$(BIN_DIR)/test_pke.exe
 
-tset_math: $(CORE_OBJS) $(TEST_DIR)/test_math.c
+test_math: $(CORE_OBJS) $(TEST_DIR)/test_math.c
 	@echo "Building ntt mult/add/sub Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_math.c $(CORE_OBJS) -o $(BIN_DIR)/test_math.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_math.exe"
@@ -136,12 +137,12 @@ test_kem: $(CORE_OBJS) $(TEST_DIR)/test_kem.c
 # ------------------------------------------
 # 清理規則
 # ------------------------------------------
-clean:
+lclean:
 	@echo "Cleaning up..."
 	rm -rf $(BUILD_DIR)/* $(BIN_DIR)/*
 
 .PHONY: all dirs clean test_ntt
 
-wclean:
+clean:
 	@echo "(Windows) Cleaning up..."
 	rmdir /s /q $(BUILD_DIR) $(BIN_DIR)
