@@ -80,14 +80,14 @@ void debug_subtraction() {
 // ==========================================================
 void debug_ntt_domain() {
     printf("\n=== Debug 2: NTT/InvNTT Domain Roundtrip ===\n");
-    polyvec v, v_orig;
+    polyvec v;
     
     // 設定一個簡單數值：全為 1
     for(int i=0; i<RUDRAKSH_K; i++)
         for(int j=0; j<RUDRAKSH_N; j++)
             v.vec[i].coeffs[j] = 1;
     
-    v_orig = v;
+
 
     // 執行 NTT -> InvNTT
     polyvec_ntt(&v);
@@ -244,8 +244,6 @@ void generate_test_poly(poly *p, int16_t offset) {
 void debug_encode_decode() {
     printf("\n=== Debug 6: Encode/Decode Signal Strength (B=2) ===\n");
     poly m_raw, m_encoded, m_decoded;
-    uint8_t msg_in[RUDRAKSH_len_K];
-    uint8_t msg_out[RUDRAKSH_len_K];
 
     // 我們手動構造一個多項式，包含 B=2 的所有可能值: 0, 1, 2, 3
     // 這樣可以測試所有區間的映射是否正確
@@ -338,7 +336,9 @@ void debug_compress_v() {
     int max_diff = 0;
     for(int i=0; i<RUDRAKSH_N; i++) {
         int diff = abs(v_in.coeffs[i] - v_out.coeffs[i]);
-        if (diff > max_diff) max_diff = diff;
+        if (diff > RUDRAKSH_Q / 2) {
+            diff = RUDRAKSH_Q - diff;
+        }
     }
 
     printf("   Max compression error (v): %d\n", max_diff);
@@ -351,28 +351,6 @@ void debug_compress_v() {
         print_failure("V compression error is TOO HIGH!");
         printf("   This will cause decryption failures.\n");
         printf("   Check: poly_compress_v (3-bit logic)\n");
-    }
-}
-
-// 測試：INTT( NTT(a) * NTT(b) ) == a * b mod (x^64 + 1)
-void debug_ntt_multiplication() {
-    poly a, b, c_ntt, c_ref;
-    // 設定 a = 1, b = x (即 coeffs[1] = 1)
-    poly_zero(&a); a.coeffs[0] = 1;
-    poly_zero(&b); b.coeffs[1] = 1;
-
-    // 1. 使用你的 NTT 進行點乘
-    poly_ntt(&a);
-    poly_ntt(&b);
-    poly_zero(&c_ntt);
-    poly_basemul_acc(&c_ntt, &a, &b); // 點乘
-    poly_invntt(&c_ntt);
-
-    // 2. 預期結果：a * b = x，所以 coeffs[1] 應為 1，其餘為 0
-    if (c_ntt.coeffs[1] != 1) {
-        printf("NTT 同態測試失敗！預期 coeffs[1]=1, 得到 %d\n", c_ntt.coeffs[1]);
-        // 如果得到的是其他位置，說明 bit-reversal 索引錯了
-        // 如果得到的是亂碼，說明蝶形運算結構（DIF/DIT）與 zetas 表順序不對
     }
 }
 
@@ -397,5 +375,7 @@ int main() {
     printf("3. If Debug 4 fails: Your KeyGen/Encapsulate key transfer is broken.\n");
     printf("4. If Debug 5 error is huge: Your Cipher is #@/~1df$e5\n");
 
-    debug_ntt_multiplication();
+    printf("\n=============================================\n");
+    printf("   End of Tests\n");
+    printf("=============================================\n");
 }

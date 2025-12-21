@@ -5,6 +5,9 @@
 
 int main()
 {
+    printf("\n=============================================\n");
+    printf("   Generator Test\n");
+    printf("=============================================\n");
     // ==========================================================
     // 1. matrix A generator
     // ==========================================================
@@ -59,7 +62,7 @@ int main()
     poly test_poly_e;
     polyvec_cbd_eta(&test_vec_s, &test_vec_e,key_eta);
     poly_cbd_eta(&test_poly_e, key_eta, (uint8_t)18);
-    printf("函數編譯成功\n");
+    printf("function Compile success\n");
 
     //分布測試
     int result[5] = {0,0,0,0,0}; // 2,1,0,-1,-2
@@ -73,7 +76,7 @@ int main()
             result[p.coeffs[j]+2]++; // -2~2 -> 0~4
         }
     }
-    printf("分佈測試:\n");
+    printf("Distribution test:\n"); //分佈測試
     for(int i=0;i<5;i++)
     {
         printf("%d : %d\n",i-2,result[i]);
@@ -108,6 +111,8 @@ int main()
         printf("test: %d , Ans: %d\n",h,ans[i][1]);
     }
 
-    printf("\n=== All Tests Finished ===\n");
+    printf("\n=============================================\n");
+    printf("   End of Tests\n");
+    printf("=============================================\n");
     return 0;
 }

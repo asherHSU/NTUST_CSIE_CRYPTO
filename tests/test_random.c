@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 // 輔助函式：列印 Hex 字串
 void print_hex(const char *label, const uint8_t *data, size_t len) {
@@ -56,92 +57,151 @@ int main()
     printf("\n");
 
     // ---------------------------------------------------------
-    // 2. 測試 rudraksh_prf
-    // ---------------------------------------------------------
-    printf("[4] Testing rudraksh_prf (Key[16]+Nonce[2] -> 8 bytes(one times))...\n");
-    {
-        uint8_t key[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-                           0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
-        uint8_t nonce[2] = {0x00,0x01}; // i = 0, j = 1
-        uint8_t out1[16], out2[16];
+// 2. 測試 Rudraksh PRF (包含 MatrixA 與 CBD 版本)
+// ---------------------------------------------------------
 
-        RUDRAFKSH_STATE state1;
-        uint8_t out1_1[8];
-        uint8_t out1_2[8];
-        rudraksh_prf_init(&state1, key, &nonce[0],&nonce[1]);
-        rudraksh_prf_put(&state1,out1_1);
-        rudraksh_prf_put(&state1,out1_2);
-        memcpy(out1, out1_1, 8);
-        memcpy(out1+8, out1_2, 8);
-        print_hex("  PRF Output: ", out1, 16);
+// --- [4.1] Testing rudraksh_prf_init_matrixA ---
+printf("[4.1] Testing MatrixA PRF (Key[16]+Nonce[i,j] -> 16 bytes)...\n");
+{
+    uint8_t key[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+                       0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
+    uint8_t nonce_i = 0x00;
+    uint8_t nonce_j = 0x01;
+    uint8_t out1[16], out2[16];
 
-        // Determinism check
-        RUDRAFKSH_STATE state2;
-        uint8_t out2_1[8];
-        uint8_t out2_2[8];
-        rudraksh_prf_init(&state2, key, &nonce[0],&nonce[1]);
-        rudraksh_prf_put(&state2,out2_1);
-        rudraksh_prf_put(&state2,out2_2);
-        memcpy(out2, out2_1, 8);
-        memcpy(out2+8, out2_2, 8);
+    RUDRAFKSH_STATE state1;
+    uint8_t out1_h[8], out1_l[8];
+    
+    // 初始化並取得 16 bytes 輸出 (兩次 8 bytes)
+    rudraksh_prf_init_matrixA(&state1, key, &nonce_i, &nonce_j);
+    rudraksh_prf_put(&state1, out1_h);
+    rudraksh_prf_put(&state1, out1_l);
+    memcpy(out1, out1_h, 8);
+    memcpy(out1 + 8, out1_l, 8);
+    print_hex("  MatrixA PRF Output: ", out1, 16);
 
-        if (memcmp(out1, out2, 16) == 0) {
-            printf("  >> Determinism Check: PASSED\n");
-        } else {
-            printf("  >> Determinism Check: FAILED\n");
-        }
+    // 1. 決定性檢查 (Determinism Check)
+    RUDRAFKSH_STATE state2;
+    uint8_t out2_h[8], out2_l[8];
+    rudraksh_prf_init_matrixA(&state2, key, &nonce_i, &nonce_j);
+    rudraksh_prf_put(&state2, out2_h);
+    rudraksh_prf_put(&state2, out2_l);
+    memcpy(out2, out2_h, 8);
+    memcpy(out2 + 8, out2_l, 8);
 
-        // Key Sensitivity Check (Change Key)
-        key[0] ^= 0xFF; 
-        RUDRAFKSH_STATE state2_2;
-        rudraksh_prf_init(&state2_2, key, &nonce[0],&nonce[1]);
-        rudraksh_prf_put(&state2_2,out2_1);
-        rudraksh_prf_put(&state2_2,out2_2);
-        memcpy(out2, out2_1, 8);
-        memcpy(out2+8, out2_2, 8);
-        if (memcmp(out1, out2, 16) != 0) {
-            printf("  >> Key Sensitivity  : PASSED\n");
-        } else {
-            printf("  >> Key Sensitivity  : FAILED\n");
-        }
-        key[0] ^= 0xFF; // Restore key
-
-        // Nonce Sensitivity Check (Change Nonce)
-        nonce[0] ^= 0xFF;
-        RUDRAFKSH_STATE state2_3;
-        rudraksh_prf_init(&state2_3, key, &nonce[0],&nonce[1]);
-        rudraksh_prf_put(&state2_3,out2_1);
-        rudraksh_prf_put(&state2_3,out2_2);
-        memcpy(out2, out2_1, 8);
-        memcpy(out2+8, out2_2, 8);
-        if (memcmp(out1, out2, 16) != 0) {
-            printf("  >> Nonce Sensitivity: PASSED\n");
-        } else {
-            printf("  >> Nonce Sensitivity: FAILED\n");
-        }
+    if (memcmp(out1, out2, 16) == 0) {
+        printf("  >> Determinism Check: PASSED\n");
+    } else {
+        printf("  >> Determinism Check: FAILED\n");
     }
 
-
-    #define test_bytes  1024 * 1024 // 測試 1 MB 的隨機數據
-
-    printf("\n==========================================\n");
-    printf("=== Random Bytes Test (%d bytes): ===\n",test_bytes);
-    printf("==========================================\n\n");
-
-    // 計算 0 / 1 的比例
-    int bit_count[2] = {0, 0};
-    uint8_t buffer[test_bytes];
-    rudraksh_randombytes(buffer, test_bytes);
-    for (int i = 0; i < test_bytes; i++) {
-        for (int b = 0; b < 8; b++) {
-            int bit = (buffer[i] >> b) & 0x01;
-            bit_count[bit]++;
-        }
+    // 2. 金鑰靈敏度 (Key Sensitivity)
+    key[0] ^= 0xFF; 
+    rudraksh_prf_init_matrixA(&state2, key, &nonce_i, &nonce_j);
+    rudraksh_prf_put(&state2, out2_h);
+    rudraksh_prf_put(&state2, out2_l);
+    memcpy(out2, out2_h, 8);
+    memcpy(out2 + 8, out2_l, 8);
+    if (memcmp(out1, out2, 16) != 0) {
+        printf("  >> Key Sensitivity  : PASSED\n");
+    } else {
+        printf("  >> Key Sensitivity  : FAILED\n");
     }
-    printf("  Total Bits: %d\n", test_bytes * 8);
-    printf("  0 Bits    : %d (%.2f%%)\n", bit_count[0], (bit_count[0] * 100.0) / (test_bytes * 8));
-    printf("  1 Bits    : %d (%.2f%%)\n", bit_count[1], (bit_count[1] * 100.0) / (test_bytes * 8));
+    key[0] ^= 0xFF; // 還原
 
-    printf("\n=== All Tests Finished ===\n");
-    return 0;
+    // 3. Nonce 靈敏度 (Nonce Sensitivity - i)
+    uint8_t nonce_i_alt = nonce_i ^ 0xFF;
+    rudraksh_prf_init_matrixA(&state2, key, &nonce_i_alt, &nonce_j);
+    rudraksh_prf_put(&state2, out2_h);
+    rudraksh_prf_put(&state2, out2_l);
+    memcpy(out2, out2_h, 8);
+    memcpy(out2 + 8, out2_l, 8);
+    if (memcmp(out1, out2, 16) != 0) {
+        printf("  >> Nonce-i Sensitivity: PASSED\n");
+    } else {
+        printf("  >> Nonce-i Sensitivity: FAILED\n");
+    }
+}
+
+printf("\n");
+
+// --- [4.2] Testing rudraksh_prf_init_cbd ---
+printf("[4.2] Testing CBD PRF (Key[16]+Nonce[1] -> 16 bytes)...\n");
+{
+    uint8_t key[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+                       0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
+    uint8_t nonce = 0x05;
+    uint8_t out1[16], out2[16];
+
+    RUDRAFKSH_STATE state1;
+    uint8_t out1_h[8], out1_l[8];
+    
+    // 初始化
+    rudraksh_prf_init_cbd(&state1, key, &nonce);
+    rudraksh_prf_put(&state1, out1_h);
+    rudraksh_prf_put(&state1, out1_l);
+    memcpy(out1, out1_h, 8);
+    memcpy(out1 + 8, out1_l, 8);
+    print_hex("  CBD PRF Output    : ", out1, 16);
+
+    // 1. 決定性檢查
+    RUDRAFKSH_STATE state2;
+    uint8_t out2_h[8], out2_l[8];
+    rudraksh_prf_init_cbd(&state2, key, &nonce);
+    rudraksh_prf_put(&state2, out2_h);
+    rudraksh_prf_put(&state2, out2_l);
+    memcpy(out2, out2_h, 8);
+    memcpy(out2 + 8, out2_l, 8);
+
+    if (memcmp(out1, out2, 16) == 0) {
+        printf("  >> Determinism Check: PASSED\n");
+    } else {
+        printf("  >> Determinism Check: FAILED\n");
+    }
+
+    // 2. Nonce 靈敏度
+    uint8_t nonce_alt = nonce ^ 0x01;
+    rudraksh_prf_init_cbd(&state2, key, &nonce_alt);
+    rudraksh_prf_put(&state2, out2_h);
+    rudraksh_prf_put(&state2, out2_l);
+    memcpy(out2, out2_h, 8);
+    memcpy(out2 + 8, out2_l, 8);
+    if (memcmp(out1, out2, 16) != 0) {
+        printf("  >> Nonce Sensitivity : PASSED\n");
+    } else {
+        printf("  >> Nonce Sensitivity : FAILED\n");
+    }
+}
+
+// ---------------------------------------------------------
+// 3. Random Bytes Test
+// ---------------------------------------------------------
+#define test_bytes  1024 * 1024 // 測試 1 MB 的隨機數據
+
+printf("\n==========================================\n");
+printf("=== Random Bytes Test (%d bytes): ===\n", test_bytes);
+printf("==========================================\n\n");
+
+int bit_count[2] = {0, 0};
+uint8_t *buffer = malloc(test_bytes); // 使用 malloc 避免 Stack Overflow
+if (buffer == NULL) {
+    printf("Memory Allocation Failed!\n");
+    return -1;
+}
+
+rudraksh_randombytes(buffer, test_bytes);
+for (int i = 0; i < test_bytes; i++) {
+    for (int b = 0; b < 8; b++) {
+        int bit = (buffer[i] >> b) & 0x01;
+        bit_count[bit]++;
+    }
+}
+printf("  Total Bits: %d\n", test_bytes * 8);
+printf("  0 Bits    : %d (%.2f%%)\n", bit_count[0], (bit_count[0] * 100.0) / (test_bytes * 8));
+printf("  1 Bits    : %d (%.2f%%)\n", bit_count[1], (bit_count[1] * 100.0) / (test_bytes * 8));
+
+free(buffer);
+printf("\n=============================================\n");
+printf("   End of Tests\n");
+printf("=============================================\n");
 }

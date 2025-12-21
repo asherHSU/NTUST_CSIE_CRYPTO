@@ -371,6 +371,9 @@ void rudraksh_kem_test() //public_key_bitstream *pkb, secret_key_bitstream *skb
 
 int main()
 {
+    printf("\n=============================================\n");
+    printf("   KEM Tests\n");
+    printf("=============================================\n");
     rudraksh_kem_test();
 
     // 即使在同一個函數內跑兩次，看看 c1 和 c2 是否一樣
@@ -388,4 +391,8 @@ int main()
     } else {
         printf("FAIL: Encryption is NOT deterministic! Each call produces different noise.\n");
     }
+
+    printf("\n=============================================\n");
+    printf("   End of Tests\n");
+    printf("=============================================\n");
 }
