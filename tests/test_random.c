@@ -24,7 +24,7 @@ int main()
     // ---------------------------------------------------------
     // 1. 測試 rudraksh_hash
     // ---------------------------------------------------------
-    printf("[3] Testing rudraksh_hash ...\n");
+    printf("[1] Testing rudraksh_hash ...\n");
     {
         const char *msg = "Test Message ";
         size_t msg_len = strlen(msg);
@@ -61,7 +61,7 @@ int main()
 // ---------------------------------------------------------
 
 // --- [4.1] Testing rudraksh_prf_init_matrixA ---
-printf("[4.1] Testing MatrixA PRF (Key[16]+Nonce[i,j] -> 16 bytes)...\n");
+printf("[2] Testing MatrixA PRF (Key[16]+Nonce[i,j] -> 16 bytes)...\n");
 {
     uint8_t key[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
                        0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
@@ -126,7 +126,7 @@ printf("[4.1] Testing MatrixA PRF (Key[16]+Nonce[i,j] -> 16 bytes)...\n");
 printf("\n");
 
 // --- [4.2] Testing rudraksh_prf_init_cbd ---
-printf("[4.2] Testing CBD PRF (Key[16]+Nonce[1] -> 16 bytes)...\n");
+printf("[3] Testing CBD PRF (Key[16]+Nonce[1] -> 16 bytes)...\n");
 {
     uint8_t key[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
                        0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};

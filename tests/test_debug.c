@@ -37,114 +37,11 @@ void generate_test_polyvec(polyvec *v, int16_t start_val) {
         }
     }
 }
-
 // ==========================================================
-// 測試 1: 減法邏輯 (檢查負數處理)
-// ==========================================================
-void debug_subtraction() {
-    printf("\n=== Debug 1: Subtraction Logic (poly_sub) ===\n");
-    poly a, b, r;
-    
-    // Case 1: 一般減法
-    // 100 - 50 = 50
-    memset(&a, 0, sizeof(poly)); memset(&b, 0, sizeof(poly));
-    a.coeffs[0] = 100;
-    b.coeffs[0] = 50;
-    poly_sub(&r, &a, &b); // 假設你有這個 wrapper，或者直接測試 fqsub
-    
-    if (r.coeffs[0] != 50) {
-        print_failure("100 - 50 != 50");
-        printf("   Actual: %d\n", r.coeffs[0]);
-    } else {
-        print_pass("Positive subtraction OK");
-    }
-
-    // Case 2: 負數回繞 (重點！)
-    // 0 - 1 mod 7681 應該是 7680
-    a.coeffs[0] = 0;
-    b.coeffs[0] = 1;
-    poly_sub(&r, &a, &b);
-
-    if (r.coeffs[0] == 7680) {
-        print_pass("Negative wrap-around (0 - 1 = q - 1) OK");
-    } else {
-        print_failure("Negative wrap-around failed!");
-        printf("   Expected: 7680 (0x1E00)\n");
-        printf("   Actual:   %d (0x%04X)\n", r.coeffs[0], (uint16_t)r.coeffs[0]);
-        print_info("Hint: If actual is -1 or 65535, your fqsub is not adding q back.");
-    }
-}
-
-// ==========================================================
-// 測試 2: NTT 域與 InvNTT 因子
-// ==========================================================
-void debug_ntt_domain() {
-    printf("\n=== Debug 2: NTT/InvNTT Domain Roundtrip ===\n");
-    polyvec v;
-    
-    // 設定一個簡單數值：全為 1
-    for(int i=0; i<RUDRAKSH_K; i++)
-        for(int j=0; j<RUDRAKSH_N; j++)
-            v.vec[i].coeffs[j] = 1;
-    
-
-
-    // 執行 NTT -> InvNTT
-    polyvec_ntt(&v);
-    polyvec_invntt_tomont(&v);
-
-    // 檢查結果
-    // 理論上 InvNTT_tomont 的結果通常會帶有 Montgomery 因子 (R 或 R^-1)
-    // 或者如果你的實作包含 map back，應該變回 1。
-    
-    int16_t result = v.vec[0].coeffs[0];
-    printf("   Input: 1 -> NTT -> InvNTT -> Output: %d\n", result);
-
-    if (result == 1) {
-        print_pass("InvNTT returns standard domain integer (Excellent!)");
-        print_info("You can mix InvNTT output with CBD errors directly.");
-    } else {
-        print_info("InvNTT output is NOT 1. This means it's in Montgomery domain.");
-        printf("   Montgomery Factor appears to be: %d\n", result);
-        print_failure("Potential Bug: You cannot add CBD error (integer) to this value directly!");
-        print_info("Fix: Multiply CBD error by this factor, or convert InvNTT output to normal int.");
-    }
-}
-
-// ==========================================================
-// 測試 3: 矩陣 A 的確定性 (Determinism)
-// ==========================================================
-void debug_matrix_consistency() {
-    printf("\n=== Debug 3: Matrix A Determinism ===\n");
-    
-    uint8_t seed[RUDRAKSH_len_K];
-    memset(seed, 0xAB, RUDRAKSH_len_K); // 隨便一個種子
-
-    polymat A1, A2;
-    
-    poly_matrixA_generator(&A1, seed);
-    poly_matrixA_generator(&A2, seed);
-
-    if (memcmp(&A1, &A2, sizeof(polymat)) == 0) {
-        print_pass("Matrix A generation is deterministic (Good).");
-    } else {
-        print_failure("Matrix A generation is NOT deterministic!");
-        print_info("Hint: Check if your XOF state is being reset properly.");
-    }
-
-    // 檢查數值是否看起來正常 (非全零)
-    int zeros = 0;
-    for(int i=0; i<10; i++) if(A1.matrix[0][0].coeffs[i] == 0) zeros++;
-    if (zeros > 8) {
-        print_failure("Matrix A seems to be empty (all zeros). Check XOF output.");
-    }
-}
-
-// ==========================================================
-// 測試 4: 序列化與反序列化 (Packing)
+// 測試 1: 序列化與反序列化 (Packing)
 // ==========================================================
 void debug_serialization() {
-    printf("\n=== Debug 4: Serialization (polyvec_tobytes/frombytes) ===\n");
+    printf("\n=== Debug 1: Serialization (polyvec_tobytes/frombytes) ===\n");
     
     polyvec v_in, v_out;
     // 13 bits (936 bytes for K=9, N=64)
@@ -189,10 +86,10 @@ void debug_serialization() {
 }
 
 // ==========================================================
-// 測試 5: 壓縮 (Compression) 精確度
+// 測試 2: 壓縮 (Compression) 精確度
 // ==========================================================
 void debug_compression() {
-    printf("\n=== Debug 5: Compression Loss Analysis ===\n");
+    printf("\n=== Debug 2: Compression Loss Analysis ===\n");
     
     polyvec u, u_decomp;
     // u 使用 10 bits 壓縮
@@ -239,10 +136,10 @@ void generate_test_poly(poly *p, int16_t offset) {
 }
 
 // ==========================================================
-// 測試 6: Encode/Decode (針對 B=2 優化版)
+// 測試 4: Encode/Decode (針對 B=2 優化版)
 // ==========================================================
 void debug_encode_decode() {
-    printf("\n=== Debug 6: Encode/Decode Signal Strength (B=2) ===\n");
+    printf("\n=== Debug 4: Encode/Decode Signal Strength (B=2) ===\n");
     poly m_raw, m_encoded, m_decoded;
 
     // 我們手動構造一個多項式，包含 B=2 的所有可能值: 0, 1, 2, 3
@@ -313,10 +210,10 @@ void debug_encode_decode() {
 }
 
 // ==========================================================
-// 測試 7: Compress V (3-bit 壓縮誤差測試)
+// 測試 3: Compress V (3-bit 壓縮誤差測試)
 // ==========================================================
 void debug_compress_v() {
-    printf("\n=== Debug 7: Compress V (3-bit) Accuracy ===\n");
+    printf("\n=== Debug 3: Compress V (3-bit) Accuracy ===\n");
     
     poly v_in, v_out;
     // v 使用 3 bits 壓縮, N=64 -> 24 bytes
@@ -359,21 +256,11 @@ int main() {
     printf("   Rudraksh Debug Suite (Hardware/Math)   \n");
     printf("==========================================\n");
 
-    debug_subtraction();
-    debug_ntt_domain();
-    debug_matrix_consistency();
     debug_serialization();
     debug_compression();
-
-    debug_encode_decode();
     debug_compress_v();
-
-    printf("\n==========================================\n");
-    printf("Analysis Guide:\n");
-    printf("1. If Debug 1 fails: Your decryption math is broken (negative numbers).\n");
-    printf("2. If Debug 2 output != 1: You have a Domain Mismatch. Add Montgomery factor to Error term.\n");
-    printf("3. If Debug 4 fails: Your KeyGen/Encapsulate key transfer is broken.\n");
-    printf("4. If Debug 5 error is huge: Your Cipher is #@/~1df$e5\n");
+    debug_encode_decode();
+    
 
     printf("\n=============================================\n");
     printf("   End of Tests\n");

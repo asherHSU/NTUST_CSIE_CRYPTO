@@ -380,8 +380,8 @@ int main()
 
     public_key pk;
     poly m;
-    uint8_t seed_r[RUDRAKSH_len_K];
-    cipher_text c1,c2;
+    uint8_t seed_r[RUDRAKSH_len_K]={0};
+    cipher_text c1 = {0},c2 = {0};
 
     rudraksh_pke_encrypt(&pk, &m, seed_r, &c1);
     rudraksh_pke_encrypt(&pk, &m, seed_r, &c2);

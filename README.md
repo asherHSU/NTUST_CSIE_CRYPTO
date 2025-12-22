@@ -76,61 +76,306 @@ NTUST_CSIE_CRYPTO/
 ### 環境需求* GCC 編譯器 (支援 C99 標準)
 * Make (Windows 使用者可安裝 MinGW 或透過 WSL 執行)
 
-### 1. 編譯環境準備若為 Windows 環境，請先建立輸出目錄：
-
+### 編譯並運行指令
+##### Windows - cmd / PowerShell 編譯環境
 ```bash
-make dirs
-```
+# all tests
+make 
 
-*(Linux/Mac 使用者請用 `make ldirs`)*
-
-### 2. 執行單元測試 ####A. NTT 數學核心測試驗證數論轉換與反轉換的正確性：
-
-```bash
-make test_ntt
-./bin/test_ntt
-
-```
-
-**預期輸出:** `Round-Trip Test (INTT(NTT(x)) == x) PASSED!`
-
-#### B. ASCON 與亂數測試驗證 Hash、PRF 以及系統亂數生成功能：
-
-```bash
+# single test
 make random
-
-```
-
-*(此指令會自動編譯並執行 `test_random.exe`)*
-
-**預期輸出:**
-
-* Determinism Check: PASSED
-* Avalanche Check: PASSED
-* Random Bytes Test: 0/1 bits 分佈約為 50%
-
-#### C. 生成器與取樣測試驗證矩陣 A 的生成邏輯與 CBD 誤差分佈：
-
-```bash
 make gen
+make ntt
+make math
+make debug
+make pke
+make kem
+make crypto
 
-```
-
-*(此指令會自動編譯並執行 `test_generator.exe`)*
-
-**預期輸出:**
-
-* Gen polys: ...
-* Avg coffe: ... (檢查係數是否均勻分佈)
-* 分佈測試: 驗證 CBD 輸出是否集中於 -2 到 2 之間
-
-### 3. 清理專案 (Clean Build)若需要重新編譯，可執行：
-
-```bash
+# clean test
 make clean
+```
+-----
+##### Linux / GitHub Actions  編譯環境
+```bash
+# all tests
+make linux
 
+# single test
+make lrandom
+make lgen
+make lntt
+make lmath
+make ldebug
+make lpke
+make lkem
+make lcrypto
+
+# clean test
+make lclean
 ```
 
-*(Windows 使用者請用 `make wclean`)*
+### 單元測試說明 
+##### 1. 隨機亂數測試 (test_ntt.c)
+```bash
+# 編譯並執行
+    # windows
+make random
+    # linux
+make lrandom
+```
+**測試內容:**
+1. ASCON hash 測試
+2. MatrixA PRF 測試
+3. CBD PRF 測試
+4. Random Bytes 生成測試
 
----
+
+**預期輸出:** 
+###### [1] Hash
+`Determinism Check: PASSED`
+`Avalanche Check  : PASSED`
+###### [2] Matrix A PRF
+`Determinism Check: PASSED`
+`Key Sensitivity  : PASSED`
+`Nonce-i Sensitivity: PASSED`
+###### [3] CBD PRF
+`Determinism Check: PASSED`
+`Nonce Sensitivity : PASSED`
+###### Random Bytes
+`Total Bits: 8388608`
+`0 Bits    : 419xxxx (約50.00%)`
+`1 Bits    : 419xxxx (約50.00%)`
+
+-----
+##### 2. Matrix A / CBD 生成器測試 (test_generator.c)
+```bash
+# 編譯並執行
+    # windows
+make gen
+    # linux
+make lgen
+```
+**測試內容:**
+1. Matrix A 生成
+2. CBD 生成分佈
+3. CBD 固定種子生成
+
+
+**預期輸出:** 
+###### [1] Matrix A
+`Avg coffe : 38xx( Avg = 3840 )`
+###### [2] CBD
+```
+Distribution test:
+-2 : 78 (80)
+-1 : 332 (320)
+0 : 465 (480)
+1 : 321 (320)
+2 : 84 (80)
+```
+###### [2.2] CBD Fixed input
+```
+-------------------
+test: 0 , Ans: 0
+test: 0 , Ans: 0
+-------------------
+test: 0 , Ans: 0
+test: 0 , Ans: 0
+-------------------
+test: -1 , Ans: -1
+test: 1 , Ans: 1
+```
+-----
+##### 3. NTT 測試 (test_ntt.c)
+```bash
+# 編譯並執行
+    # windows
+make ntt
+    # linux
+make lntt
+```
+**測試內容:**
+1. NTT 與 INTT 轉換
+2. NTT域 乘法 測試 
+`(測試乘法已更改邏輯, 從 NTT域 修正至 NTT前q模環內)`
+
+**預期輸出:** 
+###### [1] NTT 與 INTT 轉換
+`NTT Test PASSED! (Basic Property Check)`
+`Round-Trip Test (INTT(NTT(x)) == x) PASSED!`
+###### [2] NTT域 乘法 測試 (邏輯已變更)
+`Vector-Vector Mul Test FAILED!` `(邏輯已變更)`
+`Matrix-Vector Mul Test FAILED!` `(邏輯已變更)`
+
+-----
+##### 4. 數學模運算 測試 (test_math.c)
+```bash
+# 編譯並執行
+    # windows
+make math
+    # linux
+make lmath
+```
+**測試內容:**
+1. 多項式 Add / Sub 測試
+2. 多項式 Mul 測試
+
+**預期輸出:** 
+###### [1] 多項式 Add / Sub 測試
+`[Test 1] Poly Add/Sub: PASSED`
+###### [2] 多項式 Mul 測試
+`[Test 2] Poly BaseMul Acc: PASSED`
+
+-----
+##### 5. PKE debug (test_debug.c)
+```bash
+# 編譯並執行
+    # windows
+make debug
+    # linux
+make ldebug
+```
+**測試內容:**
+1. 序列化測試 (struct to bit stream)
+2. 加解 壓縮 u 測試
+3. 加解 壓縮 v 測試
+4. 加解碼測試
+
+
+**預期輸出:** 
+###### [1] 序列化測試 (struct to bit stream)
+`[PASS] Serialization 13-bit roundtrip OK`
+###### [2] 加解 壓縮 u 測試
+`[PASS] Compression error is within expected range. `
+###### [3] 加解 壓縮 v 測試
+```
+[PASS] Scaling for B=2 (0, 1920, 3840, 5760) is correct.
+[PASS] Decode logic correctly recovers 0, 1, 2, 3.
+[PASS] Decode is robust against small noise (+/- 200).
+```
+###### [4] 加解碼測試
+`[PASS] V compression error is within theoretical bounds.`
+
+-----
+##### 6. PKE 最小模組擴充除錯 (test_pke.c)
+```bash
+# 編譯並執行
+    # windows
+make pke
+    # linux
+make lpke
+```
+**測試內容:**
+最小模組測試 (only 數學)
+-> 增加功能 -> 測試 -> 修改 (循環)
+-> 最終結果測試
+
+
+**預期輸出:** 
+###### [1] 實際 / 標準 比較表
+```
+[Comparison Result mod q (7681)]
+ Index  |  Actual  |  standard |   Diff
+-----------------------------------------------        
+      0 |      262 |         0 |   -262
+      1 |     2183 |      1920 |   -263
+      2 |     3471 |      3840 |    369
+      3 |     6037 |      5760 |   -277
+      4 |      128 |         0 |   -128
+      5 |     2333 |      1920 |   -413
+      6 |     4220 |      3840 |   -380
+      7 |     6228 |      5760 |   -468
+-----------------------------------------------        
+Forecast| stand+dif|     -     |  < 500 (mod q)
+```
+###### [2] NTT域 乘法 測試 (邏輯已變更)
+```
+[Comparison Result]
+Index | Original | Recovered | Status
+-------------------------------------
+    0 |        0 |         0 | OK
+    1 |        1 |         1 | OK
+    2 |        2 |         2 | OK
+    3 |        3 |         3 | OK
+    4 |        0 |         0 | OK
+    5 |        1 |         1 | OK
+    6 |        2 |         2 | OK
+    7 |        3 |         3 | OK
+```
+-----
+##### 7. KEM 最小模組擴充 (test_kem.c)
+```bash
+# 編譯並執行
+    # windows
+make kem
+    # linux
+make lkem
+```
+**測試內容:**
+最小模組測試 (PKE + m/m'對照)
+-> 增加功能 -> 測試 -> 修改 (循環)
+-> 最終結果測試
+
+**預期輸出:** 
+###### [1] m / m' 比較
+```
+M  : *一串8進制 
+M' : *一串8進制 
+Pass
+```
+###### [2] kr / kr' 比較
+`Kr  : *一串8進制 `
+`Kr' : *一串8進制 `
+Pass
+###### [3] pk 比較 InGen / InEnc / InDec
+`PK G-E Pass`
+`PK G-D Pass`
+###### [4] 解密是否成功
+`V : pass`
+`PASS: Encryption is deterministic.`
+
+-----
+##### 8. 密碼學模型 (PKE + KEM) 加解密 測試 (test_crypto.c)
+```bash
+# 編譯並執行
+    # windows
+make crypto
+    # linux
+make lcrypto
+```
+**測試內容:**
+1. PKE / KEM 各 function 測試
+2. PKE / KEM 綜合測試
+3. KEM 雜訊測試
+4. 壓力測試 ( 100次 KEM )
+
+**預期輸出:** 
+###### [1] PKE / KEM 各 function 測試
+```
+--- [Test] PKE KeyGen ---
+[PASS] PKE KeyGen finished without errors.
+
+--- [Test] PKE Encryption ---
+[PASS] PKE Encryption generated non-zero ciphertext.
+
+--- [Test] PKE Decryption ---
+[PASS] PKE Decrypted message matches original
+
+--- [Test] KEM KeyGen ---
+[PASS] KEM KeyGen successful.
+
+--- [Test] KEM Encapsulation ---
+[PASS] KEM Encapsulation generated output.
+
+--- [Test] KEM Decapsulation ---
+[PASS] KEM Shared Secrets Match
+```
+###### [2] PKE / KEM 綜合測試
+`[PASS] Decrypted message matches original`
+`[PASS] Shared secrets match`
+###### [3] KEM 雜訊測試
+`=== Test 4: KEM Implicit Rejection (Security) ===
+[PASS] Rejected invalid ciphertext (Keys do NOT match)`
+###### [4] 壓力測試 ( 100次 KEM )
+`[PASS] All 100 iterations successful.`

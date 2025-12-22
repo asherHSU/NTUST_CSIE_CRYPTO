@@ -11,40 +11,6 @@
 // 假設已包含必要的 params, math, random headers
 
 // ==========================================================
-// 輔助函式：Constant-time Operations
-// ==========================================================
-/*
-// 比較兩個 byte array (Constant-time)
-// 回傳值：0 代表相等，1 代表不相等
-static int verify(const uint8_t *a, const uint8_t *b, size_t len) {
-    uint8_t r = 0;
-    for (size_t i = 0; i < len; i++) {
-        r |= a[i] ^ b[i];
-    }
-    // 若 r 為 0 (相等)，回傳 0
-    // 若 r != 0 (不相等)，回傳 1
-    // 下面的運算確保將任意非零值正規化為 1 (假設 int 為 32-bit 或以上)
-    return (-(int)r >> 31) & 1; 
-    // 簡單版 (依編譯器優化可能不是 constant-time，但在功能驗證上是正確的):
-    // return r != 0;
-}
-
-// 條件複製 (Constant-time Conditional Move)
-// 若 b == 1，則將 x 複製到 r
-// 若 b == 0，則 r 保持不變
-// 注意：b 必須嚴格為 0 或 1
-static void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b) {
-    // 產生 mask: 
-    // 若 b = 1, mask = 0xFF (-1)
-    // 若 b = 0, mask = 0x00 (0)
-    uint8_t mask = -b; 
-    for (size_t i = 0; i < len; i++) {
-        r[i] ^= mask & (x[i] ^ r[i]);
-    }
-}
-*/
-
-// ==========================================================
 // 1. Public Key Encryption (PKE) APIs
 //    核心運算層：處理 Internal Struct <-> Math
 // ==========================================================
@@ -179,12 +145,16 @@ void rudraksh_pke_test()
     // m'' = v - s^T * u
     poly_sub(&v_temp,&v_prime,&v_temp);
 
+    printf("\n[Comparison Result mod q (7681)]\n");
+    printf(" Index  |  Actual  |  standard |   Diff \n");
+    printf("-----------------------------------------------\n");
     for (int i = 0; i < RUDRAKSH_N; i++) {
         uint16_t orig = (uint16_t)v_temp.coeffs[i];
         if (i < 8) {
-            printf("%5d | %8d | %9d | %9d \n", i, orig,1920*(i%4),(1920*(i%4))-orig);
+            printf("%7d | %8d | %9d | %6d \n", i, orig,1920*(i%4),(1920*(i%4))-orig);
         }
-    }
+    }printf("-----------------------------------------------\n");
+    printf("Forecast| stand+dif|     -     |  < 500 (mod q) \n");
 
     // 3. Decode
      poly_decode(&m_recovered, &v_temp);

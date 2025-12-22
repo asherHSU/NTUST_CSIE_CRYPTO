@@ -8,6 +8,7 @@ int main()
     printf("\n=============================================\n");
     printf("   Generator Test\n");
     printf("=============================================\n");
+    printf("[1] Matrix A generator");
     // ==========================================================
     // 1. matrix A generator
     // ==========================================================
@@ -48,7 +49,7 @@ int main()
         }
     }
 
-    printf("Avg coffe : %lld( Avg = 3840 )",sum/coffe_n);
+    printf(">> Avg coffe : %lld( Avg = 3840 )\n",sum/coffe_n);
 
 
     // ==========================================================
@@ -62,7 +63,7 @@ int main()
     poly test_poly_e;
     polyvec_cbd_eta(&test_vec_s, &test_vec_e,key_eta);
     poly_cbd_eta(&test_poly_e, key_eta, (uint8_t)18);
-    printf("function Compile success\n");
+    printf("\n[2] CBD generator \n");
 
     //分布測試
     int result[5] = {0,0,0,0,0}; // 2,1,0,-1,-2
@@ -73,15 +74,19 @@ int main()
         poly_cbd_eta(&p,key_eta,(uint8_t)i);
         for(int j=0;j<64;j++)
         {
-            result[p.coeffs[j]+2]++; // -2~2 -> 0~4
+            int index = p.coeffs[j]+2;
+            if(index > 4) index -= RUDRAKSH_Q;
+            result[index]++; // -2~2 -> 0~4
         }
     }
     printf("Distribution test:\n"); //分佈測試
     for(int i=0;i<5;i++)
     {
-        printf("%d : %d\n",i-2,result[i]);
+        int ans[5] = {80,320,480,320,80};
+        printf("%d : %d (%d)\n",i-2,result[i],ans[i]);
     }
 
+    printf("\n[2.2] CBD generator Fixed input\n");
     // 黃金輸入 (...擷取至rudraksh_generator.c)
     uint8_t byte[3] = {0x00,0x55,0x24};
     int ans[3][2] = {
