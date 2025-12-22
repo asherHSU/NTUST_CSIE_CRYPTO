@@ -42,14 +42,28 @@ ALL_TESTS := \
 	test_random \
 	test_generator \
 	test_ntt \
-	test_debug \
 	test_math \
+	test_debug \
 	test_pke \
 	test_kem \
 	test_crypto
 
-all: dirs $(ALL_TESTS)
+ALL_TESTS_L := \
+	test_random_l \
+	test_generator_l \
+	test_ntt_l \
+	test_math_l \
+	test_debug_l \
+	test_pke_l \
+	test_kem_l \
+	test_crypto_l
 
+all: dirs $(ALL_TESTS) 		# windows all
+$(ALL_TESTS):| dirs
+linux: ldirs $(ALL_TESTS_L)    # Linux all
+$(ALL_TESTS_L):| ldirs
+
+# windows
 random:   dirs test_random
 gen:      dirs test_generator
 ntt:      dirs test_ntt
@@ -59,6 +73,15 @@ pke:      dirs test_pke
 math:     dirs test_math
 kem:      dirs test_kem
 
+# linux 
+lrandom:   ldirs test_random_l
+lgen:      ldirs test_generator_l
+lntt:      ldirs test_ntt_l
+lcrypto:   ldirs test_crypto_l	
+ldebug:    ldirs test_debug_l
+lpke:      ldirs test_pke_l
+lmath:     ldirs test_math_l
+lkem:      ldirs test_kem_l
 
 # 建立必要的資料夾 (避免編譯時報錯說資料夾不存在)
 # for Linux / GitHub Actions
@@ -81,7 +104,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # ------------------------------------------
-# 測試程式編譯規則
+# 測試程式編譯規則 Windows
 # ------------------------------------------
 
 # 編譯 NTT 單元測試
@@ -91,48 +114,114 @@ test_ntt: $(CORE_OBJS) $(TEST_DIR)/test_ntt.c
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ntt.exe"
 	./$(BIN_DIR)/test_ntt.exe
 
-# 編譯 random 測試
+# 編譯 random 單元測試
 test_random: $(CORE_SRCS) $(TEST_DIR)/test_random.c
 	@echo "Building Random Unit Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_random.c $(CORE_SRCS) -o $(BIN_DIR)/test_random.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_random.exe"
 	./$(BIN_DIR)/test_random.exe
 
+# 編譯 生成器 單元測試
 test_generator: $(CORE_SRCS) $(TEST_DIR)/test_generator.c
 	@echo "Building Generator Unit Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_generator.c $(CORE_SRCS) -o $(BIN_DIR)/test_generator.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_generator.exe"
 	./$(BIN_DIR)/test_generator.exe
 
+# 編譯 加解密模型 最終測試
 test_crypto: $(CORE_OBJS) $(TEST_DIR)/test_crypto.c
 	@echo "Building PKE/KEM Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_crypto.c $(CORE_OBJS) -o $(BIN_DIR)/test_crypto.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_crypto.exe"
 	./$(BIN_DIR)/test_crypto.exe
 
+# 編譯 pke debug 測試
 test_debug: $(CORE_OBJS) $(TEST_DIR)/test_debug.c
 	@echo "Building Debug Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_debug.c $(CORE_OBJS) -o $(BIN_DIR)/test_debug.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_debug.exe"
 	./$(BIN_DIR)/test_debug.exe
 
+# 編譯 PKE 最小模型 測試
 test_pke: $(CORE_OBJS) $(TEST_DIR)/test_pke.c
 	@echo "Building pke Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_pke.c $(CORE_OBJS) -o $(BIN_DIR)/test_pke.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_pke.exe"
 	./$(BIN_DIR)/test_pke.exe
 
+# 編譯 Math 單元測試
 test_math: $(CORE_OBJS) $(TEST_DIR)/test_math.c
 	@echo "Building ntt mult/add/sub Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_math.c $(CORE_OBJS) -o $(BIN_DIR)/test_math.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_math.exe"
 	./$(BIN_DIR)/test_math.exe
 
+# 編譯 KEM 最小模型 單元測試
 test_kem: $(CORE_OBJS) $(TEST_DIR)/test_kem.c
 	@echo "Building KEM Test..."
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_kem.c $(CORE_OBJS) -o $(BIN_DIR)/test_kem.exe
 	@echo "Build Success! Run with: ./$(BIN_DIR)/test_kem.exe"
 	./$(BIN_DIR)/test_kem.exe
+
+# ------------------------------------------
+# 測試程式編譯規則 Linux
+# ------------------------------------------
+
+# 編譯 NTT 單元測試
+test_ntt_l: $(CORE_OBJS) $(TEST_DIR)/test_ntt.c
+	@echo "Building NTT Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_ntt.c $(CORE_OBJS) -o $(BIN_DIR)/test_ntt
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_ntt"
+	./$(BIN_DIR)/test_ntt
+
+# 編譯 random 單元測試
+test_random_l: $(CORE_SRCS) $(TEST_DIR)/test_random.c
+	@echo "Building Random Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_random.c $(CORE_SRCS) -o $(BIN_DIR)/test_random
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_random"
+	./$(BIN_DIR)/test_random
+
+# 編譯 生成器 單元測試
+test_generator_l: $(CORE_SRCS) $(TEST_DIR)/test_generator.c
+	@echo "Building Generator Unit Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_generator.c $(CORE_SRCS) -o $(BIN_DIR)/test_generator
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_generator"
+	./$(BIN_DIR)/test_generator
+
+# 編譯 加解密模型 最終測試
+test_crypto_l: $(CORE_OBJS) $(TEST_DIR)/test_crypto.c
+	@echo "Building PKE/KEM Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_crypto.c $(CORE_OBJS) -o $(BIN_DIR)/test_crypto
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_crypto"
+	./$(BIN_DIR)/test_crypto
+
+# 編譯 pke debug 測試
+test_debug_l: $(CORE_OBJS) $(TEST_DIR)/test_debug.c
+	@echo "Building Debug Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_debug.c $(CORE_OBJS) -o $(BIN_DIR)/test_debug
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_debug"
+	./$(BIN_DIR)/test_debug
+
+# 編譯 PKE 最小模型 測試
+test_pke_l: $(CORE_OBJS) $(TEST_DIR)/test_pke.c
+	@echo "Building pke Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_pke.c $(CORE_OBJS) -o $(BIN_DIR)/test_pke
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_pke"
+	./$(BIN_DIR)/test_pke
+
+# 編譯 Math 單元測試
+test_math_l: $(CORE_OBJS) $(TEST_DIR)/test_math.c
+	@echo "Building ntt mult/add/sub Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_math.c $(CORE_OBJS) -o $(BIN_DIR)/test_math
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_math"
+	./$(BIN_DIR)/test_math
+
+# 編譯 KEM 最小模型 單元測試
+test_kem_l: $(CORE_OBJS) $(TEST_DIR)/test_kem.c
+	@echo "Building KEM Test..."
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_kem.c $(CORE_OBJS) -o $(BIN_DIR)/test_kem
+	@echo "Build Success! Run with: ./$(BIN_DIR)/test_kem"
+	./$(BIN_DIR)/test_kem
 
 # ------------------------------------------
 # 清理規則

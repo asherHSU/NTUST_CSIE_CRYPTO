@@ -44,19 +44,24 @@ NTUST_CSIE_CRYPTO/
 ├── src/                 # 核心實作 (C 原始碼與標頭檔)
 │   ├── rudraksh_params.h    # 全域參數定義 (N=64, Q=7681, K=9)
 │   ├── rudraksh_math.h      # 數學運算與資料結構定義 (poly, polyvec)
-│   ├── rudraksh_ntt.c       # 蝴蝶運算、NTT/INTT 與基礎模運算
+│   ├── rudraksh_ntt.c       # NTT/INTT 與基礎模運算
 │   ├── rudraksh_ntt_data.c  # 預先計算的旋轉因子表 (Twiddle Factors)
 │   ├── rudraksh_poly.c      # 多項式壓縮、解壓縮、編碼與序列化
+│   ├── rudraksh_random.h    # 亂數生成 與 ASCON 高層定義
 │   ├── rudraksh_generator.c # 矩陣 A 生成與 CBD 取樣 (GenMatrix, GenSecret)
 │   ├── rudraksh_randombytes.c # 系統級亂數生成器 (Windows/Linux)
 │   ├── rudraksh_ascon.c     # ASCON 輕量級加密核心 (Hash, PRF, XOF)
 │   ├── rudraksh_crypto.h    # PKE/KEM 高層 API 宣告
+│   ├── rudraksh_crypto.c    # PKE/KEM 函式化包裝
 │   └── ascon/               # ASCON 原始實作庫
 ├── tests/               # 單元測試
 │   ├── test_ntt.c           # 驗證 Forward/Inverse NTT 正確性
+│   ├── test_math.c          # 驗證 矩陣向量乘法、向量乘法 的 NTT域運算(棄用) 及 mod q 暴力乘法 
 │   ├── test_random.c        # 驗證 ASCON Hash/PRF 與亂數生成
 │   ├── test_generator.c     # 驗證矩陣生成與誤差分佈 (CBD)
-│   └── test_kem.c           # 完整 KEM 流程測試 (計畫中)
+│   ├── test_pke.c           # 除錯 PKE 測試檔 (從最小功能模型除錯到完整功能模型) 
+│   ├── test_kem.c           # 除錯 KEM 測試檔 (從最小功能模型除錯到完整功能模型) 
+│   └── test_crypto.c        # PKE 與 KEM 函式的完整測試
 ├── tools/               # 預計算輔助工具
 │   ├── find_zeta.c          # 尋找原根 (Primitive roots) 的腳本
 │   └── gen_table.c          # 產生旋轉因子表的腳本
@@ -71,101 +76,306 @@ NTUST_CSIE_CRYPTO/
 ### 環境需求* GCC 編譯器 (支援 C99 標準)
 * Make (Windows 使用者可安裝 MinGW 或透過 WSL 執行)
 
-### 1. 編譯環境準備若為 Windows 環境，請先建立輸出目錄：
-
+### 編譯並運行指令
+##### Windows - cmd / PowerShell 編譯環境
 ```bash
-make wdirs
-```
+# all tests
+make 
 
-*(Linux/Mac 使用者請用 `make dirs`)*
-
-### 2. 執行單元測試####A. NTT 數學核心測試驗證數論轉換與反轉換的正確性：
-
-```bash
-make test_ntt
-./bin/test_ntt
-
-```
-
-**預期輸出:** `Round-Trip Test (INTT(NTT(x)) == x) PASSED!`
-
-#### B. ASCON 與亂數測試驗證 Hash、PRF 以及系統亂數生成功能：
-
-```bash
+# single test
 make random
-
-```
-
-*(此指令會自動編譯並執行 `test_random.exe`)*
-
-**預期輸出:**
-
-* Determinism Check: PASSED
-* Avalanche Check: PASSED
-* Random Bytes Test: 0/1 bits 分佈約為 50%
-
-#### C. 生成器與取樣測試驗證矩陣 A 的生成邏輯與 CBD 誤差分佈：
-
-```bash
 make gen
+make ntt
+make math
+make debug
+make pke
+make kem
+make crypto
 
-```
-
-*(此指令會自動編譯並執行 `test_generator.exe`)*
-
-**預期輸出:**
-
-* Gen polys: ...
-* Avg coffe: ... (檢查係數是否均勻分佈)
-* 分佈測試: 驗證 CBD 輸出是否集中於 -2 到 2 之間
-
-### 3. 清理專案 (Clean Build)若需要重新編譯，可執行：
-
-```bash
+# clean test
 make clean
+```
+-----
+##### Linux / GitHub Actions  編譯環境
+```bash
+# all tests
+make linux
 
+# single test
+make lrandom
+make lgen
+make lntt
+make lmath
+make ldebug
+make lpke
+make lkem
+make lcrypto
+
+# clean test
+make lclean
 ```
 
-*(Windows 使用者請用 `make wclean`)*
-
----
-
-## 📊 實作進度 (Implementation Roadmap)
-* [x] **階段 1: 基礎建設 (Foundation)**
-   * [x] 定義參數 (`KEM-poly64`)。
-   * [x] 預計算 NTT 常數 (Zeta, Twiddle factors)。
-   * [x] 建立專案目錄結構。
-
-
-* [x] **階段 2: 數學與資料核心 (Core Logic)**
-   * [x] 實作正向 NTT 與 逆向 NTT。
-   * [x] 驗證數學正確性 (`INTT(NTT(a)) == a`)。
-   * [x] 實作資料壓縮 (Compress/Decompress) 與訊息編碼 (Encode/Decode)。
-   * [x] 實作多項式序列化 (Serialization) 與反序列化。
+### 單元測試說明 
+##### 1. 隨機亂數測試 (test_ntt.c)
+```bash
+# 編譯並執行
+    # windows
+make random
+    # linux
+make lrandom
+```
+**測試內容:**
+1. ASCON hash 測試
+2. MatrixA PRF 測試
+3. CBD PRF 測試
+4. Random Bytes 生成測試
 
 
-* [x] **階段 3: 協議與原語 (Protocol & Primitives)**
-   * [x] 整合 ASCON-128 (XOF, Hash, PRF) 取代 Keccak。
-   * [x] 實作 `GenMatrix` (矩陣 A 生成與拒絕取樣)。
-   * [x] 實作 `GenSecret` (CBD 取樣 \eta=2)。
-   * [ ] 實作 `IndCpa_PKE` (矩陣向量乘法與加解密流程) **[進行中]**。
+**預期輸出:** 
+###### [1] Hash
+`Determinism Check: PASSED`
+`Avalanche Check  : PASSED`
+###### [2] Matrix A PRF
+`Determinism Check: PASSED`
+`Key Sensitivity  : PASSED`
+`Nonce-i Sensitivity: PASSED`
+###### [3] CBD PRF
+`Determinism Check: PASSED`
+`Nonce Sensitivity : PASSED`
+###### Random Bytes
+`Total Bits: 8388608`
+`0 Bits    : 419xxxx (約50.00%)`
+`1 Bits    : 419xxxx (約50.00%)`
+
+-----
+##### 2. Matrix A / CBD 生成器測試 (test_generator.c)
+```bash
+# 編譯並執行
+    # windows
+make gen
+    # linux
+make lgen
+```
+**測試內容:**
+1. Matrix A 生成
+2. CBD 生成分佈
+3. CBD 固定種子生成
 
 
-* [ ] **階段 4: KEM 封裝與評測 (KEM & Evaluation)**
-   * [ ] 實作 Fujisaki-Okamoto (FO) 轉換以達成 CCA 安全性。
-   * [ ] 與 CRYSTALS-Kyber 進行基準測試 (比較執行週期與記憶體用量)。
+**預期輸出:** 
+###### [1] Matrix A
+`Avg coffe : 38xx( Avg = 3840 )`
+###### [2] CBD
+```
+Distribution test:
+-2 : 78 (80)
+-1 : 332 (320)
+0 : 465 (480)
+1 : 321 (320)
+2 : 84 (80)
+```
+###### [2.2] CBD Fixed input
+```
+-------------------
+test: 0 , Ans: 0
+test: 0 , Ans: 0
+-------------------
+test: 0 , Ans: 0
+test: 0 , Ans: 0
+-------------------
+test: -1 , Ans: -1
+test: 1 , Ans: 1
+```
+-----
+##### 3. NTT 測試 (test_ntt.c)
+```bash
+# 編譯並執行
+    # windows
+make ntt
+    # linux
+make lntt
+```
+**測試內容:**
+1. NTT 與 INTT 轉換
+2. NTT域 乘法 測試 
+`(測試乘法已更改邏輯, 從 NTT域 修正至 NTT前q模環內)`
+
+**預期輸出:** 
+###### [1] NTT 與 INTT 轉換
+`NTT Test PASSED! (Basic Property Check)`
+`Round-Trip Test (INTT(NTT(x)) == x) PASSED!`
+###### [2] NTT域 乘法 測試 (邏輯已變更)
+`Vector-Vector Mul Test FAILED!` `(邏輯已變更)`
+`Matrix-Vector Mul Test FAILED!` `(邏輯已變更)`
+
+-----
+##### 4. 數學模運算 測試 (test_math.c)
+```bash
+# 編譯並執行
+    # windows
+make math
+    # linux
+make lmath
+```
+**測試內容:**
+1. 多項式 Add / Sub 測試
+2. 多項式 Mul 測試
+
+**預期輸出:** 
+###### [1] 多項式 Add / Sub 測試
+`[Test 1] Poly Add/Sub: PASSED`
+###### [2] 多項式 Mul 測試
+`[Test 2] Poly BaseMul Acc: PASSED`
+
+-----
+##### 5. PKE debug (test_debug.c)
+```bash
+# 編譯並執行
+    # windows
+make debug
+    # linux
+make ldebug
+```
+**測試內容:**
+1. 序列化測試 (struct to bit stream)
+2. 加解 壓縮 u 測試
+3. 加解 壓縮 v 測試
+4. 加解碼測試
 
 
+**預期輸出:** 
+###### [1] 序列化測試 (struct to bit stream)
+`[PASS] Serialization 13-bit roundtrip OK`
+###### [2] 加解 壓縮 u 測試
+`[PASS] Compression error is within expected range. `
+###### [3] 加解 壓縮 v 測試
+```
+[PASS] Scaling for B=2 (0, 1920, 3840, 5760) is correct.
+[PASS] Decode logic correctly recovers 0, 1, 2, 3.
+[PASS] Decode is robust against small noise (+/- 200).
+```
+###### [4] 加解碼測試
+`[PASS] V compression error is within theoretical bounds.`
 
----
+-----
+##### 6. PKE 最小模組擴充除錯 (test_pke.c)
+```bash
+# 編譯並執行
+    # windows
+make pke
+    # linux
+make lpke
+```
+**測試內容:**
+最小模組測試 (only 數學)
+-> 增加功能 -> 測試 -> 修改 (循環)
+-> 最終結果測試
 
-## 👥 團隊分工 (Team & Contribution)本專案為密碼學導論期末專案，開發成員如下：
 
-* **Member A:** 負責數學核心、NTT 演算法、資料壓縮/編碼實作與驗證。
-* **Member B:** 負責協議架構設計、ASCON 整合、矩陣生成與 PKE/KEM 流程組裝。
-* **Member C:** 負責品質保證 (QA)、建立 Kyber 對照組與效能評測。
+**預期輸出:** 
+###### [1] 實際 / 標準 比較表
+```
+[Comparison Result mod q (7681)]
+ Index  |  Actual  |  standard |   Diff
+-----------------------------------------------        
+      0 |      262 |         0 |   -262
+      1 |     2183 |      1920 |   -263
+      2 |     3471 |      3840 |    369
+      3 |     6037 |      5760 |   -277
+      4 |      128 |         0 |   -128
+      5 |     2333 |      1920 |   -413
+      6 |     4220 |      3840 |   -380
+      7 |     6228 |      5760 |   -468
+-----------------------------------------------        
+Forecast| stand+dif|     -     |  < 500 (mod q)
+```
+###### [2] NTT域 乘法 測試 (邏輯已變更)
+```
+[Comparison Result]
+Index | Original | Recovered | Status
+-------------------------------------
+    0 |        0 |         0 | OK
+    1 |        1 |         1 | OK
+    2 |        2 |         2 | OK
+    3 |        3 |         3 | OK
+    4 |        0 |         0 | OK
+    5 |        1 |         1 | OK
+    6 |        2 |         2 | OK
+    7 |        3 |         3 | OK
+```
+-----
+##### 7. KEM 最小模組擴充 (test_kem.c)
+```bash
+# 編譯並執行
+    # windows
+make kem
+    # linux
+make lkem
+```
+**測試內容:**
+最小模組測試 (PKE + m/m'對照)
+-> 增加功能 -> 測試 -> 修改 (循環)
+-> 最終結果測試
 
----
+**預期輸出:** 
+###### [1] m / m' 比較
+```
+M  : *一串8進制 
+M' : *一串8進制 
+Pass
+```
+###### [2] kr / kr' 比較
+`Kr  : *一串8進制 `
+`Kr' : *一串8進制 `
+Pass
+###### [3] pk 比較 InGen / InEnc / InDec
+`PK G-E Pass`
+`PK G-D Pass`
+###### [4] 解密是否成功
+`V : pass`
+`PASS: Encryption is deterministic.`
 
-## 📜 授權 (License)MIT License.
-註：`src/ascon` 目錄下的 ASCON 程式碼保留其原始授權與版權聲明。
+-----
+##### 8. 密碼學模型 (PKE + KEM) 加解密 測試 (test_crypto.c)
+```bash
+# 編譯並執行
+    # windows
+make crypto
+    # linux
+make lcrypto
+```
+**測試內容:**
+1. PKE / KEM 各 function 測試
+2. PKE / KEM 綜合測試
+3. KEM 雜訊測試
+4. 壓力測試 ( 100次 KEM )
+
+**預期輸出:** 
+###### [1] PKE / KEM 各 function 測試
+```
+--- [Test] PKE KeyGen ---
+[PASS] PKE KeyGen finished without errors.
+
+--- [Test] PKE Encryption ---
+[PASS] PKE Encryption generated non-zero ciphertext.
+
+--- [Test] PKE Decryption ---
+[PASS] PKE Decrypted message matches original
+
+--- [Test] KEM KeyGen ---
+[PASS] KEM KeyGen successful.
+
+--- [Test] KEM Encapsulation ---
+[PASS] KEM Encapsulation generated output.
+
+--- [Test] KEM Decapsulation ---
+[PASS] KEM Shared Secrets Match
+```
+###### [2] PKE / KEM 綜合測試
+`[PASS] Decrypted message matches original`
+`[PASS] Shared secrets match`
+###### [3] KEM 雜訊測試
+`=== Test 4: KEM Implicit Rejection (Security) ===
+[PASS] Rejected invalid ciphertext (Keys do NOT match)`
+###### [4] 壓力測試 ( 100次 KEM )
+`[PASS] All 100 iterations successful.`
