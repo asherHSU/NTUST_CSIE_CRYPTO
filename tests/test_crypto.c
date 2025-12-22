@@ -203,7 +203,7 @@ void test_KEM_DEC() {
 //    測試: PKE KeyGen -> Encrypt -> Decrypt -> Compare Message
 // ==========================================================
 void test_pke_correctness() {
-    printf("\n=== Test 1: PKE Correctness (Internal Logic) ===\n");
+    printf("\n=== Test 2.1: PKE Correctness (Internal Logic) ===\n");
 
     public_key pk;
     secret_key sk;
@@ -240,7 +240,7 @@ void test_pke_correctness() {
 //    測試: KEM KeyGen -> Encaps -> Decaps -> Compare Shared Secret
 // ==========================================================
 void test_kem_correctness() {
-    printf("\n=== Test 2: KEM Encapsulation/Decapsulation ===\n");
+    printf("\n=== Test 2.2: KEM Encapsulation/Decapsulation ===\n");
 
     public_key_bitstream pkb = {0};
     secret_key_bitstream skb = {0};
@@ -306,7 +306,7 @@ int main() {
     printf("=======================================\n");
     printf(" Rudraksh Unit & Integration Tests\n");
     printf("=======================================\n");
-
+    printf("\n=== Test 1: Test PKE / KEM function singel ===\n");
     // 1. PKE 個別測試
     test_PKE_GEN();
     test_PKE_ENC();
